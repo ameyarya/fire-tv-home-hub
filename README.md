@@ -30,6 +30,12 @@ Smart Home runs a small web server on the TV (port 8765), announced as **`smart-
 - **Remote**: touchpad, Back / Home / Play / Menu, volume, power and typing on the TV.
 - **Activity**, behind ☰.
 
+**HTTPS (optional):** run `./https-setup.sh` once. It makes your home's own certificate authority (kept on your
+computer in `~/.config/fire-tv-home-hub`), signs a certificate for `smart-home.local` and hands it to the TV, which
+then serves **`https://smart-home.local:8443`** (plain http on 8765 redirects there; the API stays on http for the
+voice stick). On each phone, open `http://smart-home.local:8765/setup` once to trust the authority. The page has a
+home-screen icon either way.
+
 Pair a phone once: scan the QR code in Smart Home → Settings → Phone remote, or open `http://smart-home.local:8765`
 and enter the 4-digit code shown there. Optionally (Settings → *Phone remote when the TV is off*) the TV keeps its
 Wi-Fi up while off, so the page works any time, at a few watts.

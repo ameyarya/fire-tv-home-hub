@@ -34,7 +34,7 @@ import java.util.regex.Pattern;
  */
 final class Remote {
 
-    static final int PORT = 8765;
+    static final int PORT = 8765, HTTPS_PORT = 8443;
     static final String HOST = "smart-home";
     private static final String PREFS = "remote", ON = "on", TOKEN = "token", CODE = "code", AWAKE = "awake";
 
@@ -130,13 +130,39 @@ final class Remote {
     }
 
     /** The address to type: the name, without the secret. */
-    static String shortUrl() {
-        return "http://" + HOST + ".local:" + PORT;
+    static String shortUrl(Context c) {
+        return hasHttps(c) ? "https://" + HOST + ".local:" + HTTPS_PORT : "http://" + HOST + ".local:" + PORT;
     }
 
     static String url(Context c) {
+        if (hasHttps(c)) return shortUrl(c) + "/r/" + token(c);   // the certificate names smart-home.local
         String ip = address();
         return "http://" + (ip == null ? "<TV address>" : ip) + ":" + PORT + "/r/" + token(c);
+    }
+
+    // ---- HTTPS ---------------------------------------------------------------------------------------
+    // The certificate comes from the Mac (https-setup.sh): a home certificate authority signs one for
+    // smart-home.local and the TV's address; phones trust that authority once, from /setup. Kept private.
+
+    private static final String P12 = "p12", CA = "ca";
+    static final String P12_PASSWORD = "smart-home";   // only wraps the file in the app's private storage
+
+    static boolean hasHttps(Context c) {
+        return prefs(c).contains(P12);
+    }
+
+    static void setCertificate(Context c, String p12Base64, String caPem) {
+        prefs(c).edit().putString(P12, p12Base64).putString(CA, caPem).apply();
+    }
+
+    static byte[] p12(Context c) {
+        String b = prefs(c).getString(P12, null);
+        return b == null ? null : android.util.Base64.decode(b, android.util.Base64.DEFAULT);
+    }
+
+    /** The home authority, for phones to trust (served at /ca.pem). */
+    static String caPem(Context c) {
+        return prefs(c).getString(CA, "");
     }
 
     /** The TV's address on the home network (Wi-Fi or Ethernet). */

@@ -56,6 +56,9 @@ public class RemoteService extends Service {
                 if (ip == null) return;
                 mdns = javax.jmdns.JmDNS.create(java.net.InetAddress.getByName(ip), Remote.HOST);
                 mdns.registerService(javax.jmdns.ServiceInfo.create("_http._tcp.local.", "Smart Home", Remote.PORT, "path=/"));
+                if (Remote.hasHttps(this)) {
+                    mdns.registerService(javax.jmdns.ServiceInfo.create("_https._tcp.local.", "Smart Home", Remote.HTTPS_PORT, "path=/"));
+                }
             } catch (java.io.IOException | RuntimeException e) {
                 Remote.get(this).lastError = Remote.HOST + ".local: " + e.getMessage();
             }

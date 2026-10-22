@@ -26,6 +26,7 @@ import java.io.IOException;
  *   ... -a com.homecontrol.tv.SET_HOST --es name 'Plug 1' --es host 192.168.1.198
  *   ... -a com.homecontrol.tv.RESET
  *   ... -a com.homecontrol.tv.CLEAR_ACTIVITY                 (home.sh clear-activity)
+ *   ... -a com.homecontrol.tv.HTTPS_CERT             (https-setup.sh: the phone page's certificate)
  *   ... -a com.homecontrol.tv.REMOTE_LINK            (the phone remote's secret: setup for the voice stick)
  *   ... -a com.homecontrol.tv.BACKUP / RESTORE      (UI tests: keep the owner's setup on the TV meanwhile)
  */
@@ -34,6 +35,21 @@ public class ControlReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context ctx, Intent intent) {
         String action = intent.getAction() == null ? "" : intent.getAction();
+        if (action.equals(Commands.P + "HTTPS_CERT")) {   // from https-setup.sh: --es p12 <base64> --es ca <base64 of the PEM>
+            String p12 = intent.getStringExtra("p12"), ca64 = intent.getStringExtra("ca");
+            String ca = ca64 == null ? null
+                    : new String(android.util.Base64.decode(ca64, android.util.Base64.DEFAULT), java.nio.charset.StandardCharsets.UTF_8);
+            if (p12 == null || ca == null || !ca.contains("BEGIN CERTIFICATE")) {
+                setResultCode(0);
+                return;
+            }
+            Remote.setCertificate(ctx, p12, ca);
+            ctx.stopService(new Intent(ctx, RemoteService.class));   // serve it from now on
+            RemoteService.start(ctx);
+            setResultData("{\"https\":true}");
+            setResultCode(1);
+            return;
+        }
         if (action.equals(Commands.P + "REMOTE_AWAKE")) {   // phone remote while the TV is off: --ez on true|false
             Remote.setKeepAwake(ctx, intent.getBooleanExtra("on", false));
             setResultData("{\"awake\":" + Remote.keepAwake(ctx) + "}");

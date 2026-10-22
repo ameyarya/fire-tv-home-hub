@@ -524,7 +524,9 @@ final class Editors {
     private void phoneRemote() {
         if (!Remote.isOn(a)) Remote.setOn(a, true);
         p.qr("Phone remote", Remote.url(a), "On your phone (same Wi-Fi), scan this code, or open\n"
-                + Remote.shortUrl() + "\nand enter the code " + Remote.code(a) + ".\n\nThen Share → Add to Home Screen to keep it.",
+                + Remote.shortUrl(a) + "\nand enter the code " + Remote.code(a) + ".\n\nThen Share → Add to Home Screen to keep it."
+                + (Remote.hasHttps(a) ? "\n\nFirst time on a phone: open http://" + Remote.HOST + ".local:" + Remote.PORT
+                        + "/setup to trust the home certificate." : ""),
                 Arrays.asList("New link (old ones stop working)", "Turn off"), i -> {
                     if (i == 0) {
                         Remote.newToken(a);   // a new code too
