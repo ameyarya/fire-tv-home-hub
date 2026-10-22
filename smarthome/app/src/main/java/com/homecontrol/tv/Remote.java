@@ -34,7 +34,7 @@ import java.util.regex.Pattern;
  */
 final class Remote {
 
-    static final int PORT = 8765, HTTPS_PORT = 8443;
+    static final int PORT = 8765, HTTPS_PORT = 8080;
     static final String HOST = "smart-home";
     private static final String PREFS = "remote", ON = "on", TOKEN = "token", CODE = "code", AWAKE = "awake";
 

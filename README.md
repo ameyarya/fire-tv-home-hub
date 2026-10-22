@@ -32,7 +32,7 @@ Smart Home runs a small web server on the TV (port 8765), announced as **`smart-
 
 **HTTPS (optional):** run `./https-setup.sh` once. It makes your home's own certificate authority (kept on your
 computer in `~/.config/fire-tv-home-hub`), signs a certificate for `smart-home.local` and hands it to the TV, which
-then serves **`https://smart-home.local:8443`** (plain http on 8765 redirects there; the API stays on http for the
+then serves **`https://smart-home.local:8080`** (plain http on 8765 redirects there; the API stays on http for the
 voice stick). On each phone, open `http://smart-home.local:8765/setup` once to trust the authority. The page has a
 home-screen icon either way.
 
