@@ -2,15 +2,13 @@
 # Build the clean launcher and install it on the Fire TV. Fire OS keeps Home for Amazon's launcher, so
 # the FireHomeWatcher accessibility service brings this launcher up whenever Amazon's home appears.
 # Undo: ./uninstall-firetv.sh
+#   ./install-firetv.sh              build it here (needs JDK 17 and the Android SDK)
+#   ./install-firetv.sh --download   use the ready-made APK from the latest GitHub release
 set -euo pipefail
-cd "$(dirname "$0")/launcher"
-TV="${TV_HOST:-192.168.1.248}:5555"
-export JAVA_HOME="${JAVA_HOME:-/opt/homebrew/opt/openjdk@17}" ANDROID_HOME="${ANDROID_HOME:-/opt/homebrew/share/android-commandlinetools}"
-export PATH="$JAVA_HOME/bin:$PATH"
-[ -f local.properties ] || echo "sdk.dir=$ANDROID_HOME" > local.properties
-./gradlew assembleRelease -q --console=plain
+. "$(dirname "$0")/lib/tv.sh"
+APK=$(apk launcher clean-launcher "${1:-}")
 adb connect "$TV" >/dev/null
-adb -s "$TV" install -r app/build/outputs/apk/release/app-release.apk
+adb -s "$TV" install -r "$APK"
 S(){ adb -s "$TV" shell "$@" </dev/null; }
 S pm grant com.gathin.tvhome android.permission.ACCESS_FINE_LOCATION || true
 S cmd package compile -m speed -f com.gathin.tvhome >/dev/null

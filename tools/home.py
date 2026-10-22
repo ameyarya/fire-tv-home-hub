@@ -25,7 +25,9 @@ Names with spaces go in quotes: ./home.sh schedule "Lamp off" --at 23:30 --off "
 import argparse, getpass, json, os, re, shlex, socket, subprocess, sys, time
 from urllib.parse import quote
 
-TV = os.environ.get("TV_HOST", "192.168.1.248") + ":5555"
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "tools") if "tests" in __file__ else os.path.dirname(os.path.abspath(__file__)))
+import tvconf  # noqa: E402
+TV = tvconf.tv()   # TV_HOST, or tv.conf at the repo root
 APP = "com.homecontrol.tv"
 P = APP + "."
 

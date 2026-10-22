@@ -40,28 +40,41 @@ not follow the arrows.
 
 ## Setup
 
-You need the TV's **ADB debugging** on (Settings → My Fire TV → Developer options), the TV's address, and a Mac
-with `adb`, JDK 17 and the Android SDK (build-tools 34, platform 34). Scripts default to the TV at
-`192.168.1.248`; set `TV_HOST=<address>` for yours (the voice stick's `setup.sh` takes `TV=<address>:5555`).
+1. On the TV: Settings → My Fire TV → Developer options → **ADB debugging** on. Note the TV's address
+   (Settings → My Fire TV → About → Network).
+2. On a Mac (or Linux) with [`adb`](https://developer.android.com/tools/releases/platform-tools), tell the scripts
+   which TV, once:
+   ```bash
+   echo 'TV_HOST=192.168.1.50' > tv.conf      # your TV's address; tv.conf is git-ignored
+   ```
+3. Install, using the **ready-made APKs** from the [latest release](https://github.com/ameyarya/fire-tv-home-hub/releases/latest)
+   (no Java or Android SDK needed):
+   ```bash
+   ./apply.sh lists/1-ads-telemetry.txt        # debloat: disables packages (undo: ./restore.sh <list>)
+   ./install-firetv.sh --download              # the clean launcher (undo: ./uninstall-firetv.sh)
+   ./install-smarthome.sh --download           # Smart Home, the phone web app and the screensaver
+   ./install-photos.sh --download              # optional: Photos
+   ./home.sh find                              # optional: add Kasa plugs and cameras from the Mac (./home.sh --help)
+   ```
+   The first time, the TV asks to allow debugging from your computer: tick *Always allow*. Leave out `--download`
+   to build from source instead (JDK 17 and the Android SDK, build-tools 34 / platform 34).
 
-```bash
-./apply.sh lists/1-ads-telemetry.txt      # debloat (disables packages; undo: ./restore.sh <list>)
-./install-firetv.sh                       # the clean launcher (undo: ./uninstall-firetv.sh)
-./install-smarthome.sh                    # Smart Home, the phone web app and the screensaver
-./home.sh find                            # add your Kasa plugs and cameras from the Mac (./home.sh --help)
-```
+Then open **Smart Home → Settings → Phone remote** on the TV to pair your phone.
 
-Photos: `cd photos && ./gradlew assembleRelease`, then `adb install -r app/build/outputs/apk/release/app-release.apk`.
+The release APKs are signed with the maintainer's key. If you had built and installed one yourself before, uninstall
+it first (Android won't update an app signed with a different key).
 
 Voice stick: install [ESP-IDF 5.4](https://docs.espressif.com/projects/esp-idf/), then in `stick/` run
 `./setup.sh` (asks for your Wi-Fi password, hidden, and fetches the TV's phone-remote secret over adb into the
-git-ignored `main/secrets.h`) and `./flash.sh` with the stick on USB-C.
+git-ignored `main/secrets.h`) and `./flash.sh` with the stick on USB-C. It needs your own build: the Wi-Fi details
+go into the firmware.
 
 ## Tests
 
-`./run-tests.sh` runs the JVM unit tests, then UI tests that drive the real TV over adb (with fake Kasa/Shelly
-devices on the Mac, and your Smart Home setup kept aside in a backup slot meanwhile). `--mac-only` skips the TV.
-Some tests expect devices on my network; adjust the addresses in `tests/` for yours.
+`./run-tests.sh --mac-only` runs the unit tests and the `home.sh` tests; no TV needed. `./run-tests.sh` also runs
+UI tests that drive the TV in `tv.conf` over adb, with fake Kasa and Shelly devices served from your computer, and
+your own Smart Home setup kept aside in a backup slot meanwhile. Tests that need real devices are skipped unless you
+name them: `REAL_PLUG=<Kasa plug address> REAL_CAMERA=<RTSP camera address> ./run-tests.sh`.
 
 ## Notes
 

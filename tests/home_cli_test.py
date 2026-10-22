@@ -12,6 +12,7 @@ import contextlib, importlib.util, io, json, os, shlex, socket, stat, sys, tempf
 from unittest import mock
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+os.environ.setdefault("TV_HOST", "192.0.2.1")   # never reached: adb is faked below
 spec = importlib.util.spec_from_file_location("home", os.path.join(ROOT, "tools", "home.py"))
 home = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(home)

@@ -9,7 +9,9 @@
 """
 import json, os, re, subprocess, sys
 
-TV = os.environ.get("TV_HOST", "192.168.1.248") + ":5555"
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "tools") if "tests" in __file__ else os.path.dirname(os.path.abspath(__file__)))
+import tvconf  # noqa: E402
+TV = tvconf.tv()   # TV_HOST, or tv.conf at the repo root
 PKG = "com.gathin.tvhome"
 HERE = os.path.dirname(os.path.abspath(__file__))
 CONFIG_XML = os.path.join(HERE, "..", "launcher", "app", "src", "main", "res", "values", "config.xml")

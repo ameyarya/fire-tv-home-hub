@@ -16,3 +16,6 @@ stick/flash.log
 backup/
 test-results/
 .DS_Store
+
+# your TV address (see tv.conf.example)
+tv.conf

@@ -4,7 +4,7 @@
 # and goes only into that file and onto the stick.
 set -euo pipefail
 cd "$(dirname "$0")"
-TV="${TV:-192.168.1.248:5555}"
+. "$(dirname "$0")/../lib/tv.sh"   # the TV whose phone-remote secret the stick needs
 
 now=$(ipconfig getsummary en0 2>/dev/null | awk -F' : ' '/ SSID/ {print $2; exit}')
 read -r -p "Wi-Fi name [${now:-}]: " ssid

@@ -6,6 +6,7 @@
 #   ./run-tests.sh --mac-only   no TV: unit tests, home.sh tests and read-only checks on the real network
 set -uo pipefail
 cd "$(dirname "$0")"
+if [ "${1:-}" != "--mac-only" ]; then . lib/tv.sh; fi   # the UI tests drive this TV
 export JAVA_HOME="${JAVA_HOME:-/opt/homebrew/opt/openjdk@17}" ANDROID_HOME="${ANDROID_HOME:-/opt/homebrew/share/android-commandlinetools}"
 echo "== Unit tests"
 OUT=$(cd launcher && ./gradlew test -q --console=plain 2>&1); GRADLE=$?

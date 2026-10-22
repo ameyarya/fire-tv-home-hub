@@ -574,20 +574,30 @@ def test_tv_inputs_tile_explains_fire_os():
     wait_top(MAIN)
 
 
+# Tests against your own devices run only when you name them; otherwise they're skipped:
+#   REAL_CAMERA=<address of an RTSP camera>   REAL_PLUG=<address of a Kasa plug with energy monitoring>
+REAL_CAMERA, REAL_PLUG = os.environ.get("REAL_CAMERA", ""), os.environ.get("REAL_PLUG", "")
+
+
+class Skip(Exception):
+    pass
+
+
 def test_find_devices_finds_the_real_camera():
+    if not REAL_CAMERA:
+        raise Skip("set REAL_CAMERA=<camera address> to run it")
     open_app()
     press_add("Camera", "Find cameras on Wi-Fi")
     wait_for(lambda: state()["dialog"] == "Cameras found", 25, "the camera scan")
-    choose("192.168.1.249")
-    type_and_ok("Camera 249")
+    choose(REAL_CAMERA)
+    type_and_ok("Test camera")
     type_and_ok("-")   # no login: found cameras start without one
-    cam = wait_for(lambda: tile("camera", "Camera 249"), 8, "the camera at 192.168.1.249")
-    assert cam["detail"] == "192.168.1.249:554", cam["detail"]
+    cam = wait_for(lambda: tile("camera", "Test camera"), 8, f"the camera at {REAL_CAMERA}")
+    assert cam["detail"] == REAL_CAMERA + ":554", cam["detail"]
     # Found without a password: opening it must explain, not hang.
-    press("camera", "Camera 249", wait=2)
+    press("camera", "Test camera", wait=2)
     wait_top(f"{APP}/.CameraActivity")
-    out = wait_for(lambda: (o := sh("dumpsys", "activity", "top")) and "state=error" in o and o, 25, "camera error state")
-    assert "eufy" in out
+    wait_for(lambda: (o := sh("dumpsys", "activity", "top")) and "state=error" in o and o, 25, "camera error state")
     key("BACK", wait=1.5)
 
 
@@ -650,10 +660,12 @@ def test_device_screen_power_favorite_and_room():
 
 def test_real_plug_energy_read_only():
     """The device screen of a real Kasa plug shows its energy (read, never switched)."""
+    if not REAL_PLUG:
+        raise Skip("set REAL_PLUG=<Kasa plug address> to run it")
     hosts = {x["host"] for x in receiver()["devices"]}
-    if "192.168.1.197" not in hosts:
-        receiver("-a", f"{APP}.ADD_DEVICE", "--es", "host", "192.168.1.197", "--es", "name", "'Energy plug'")
-    name = next(x["name"] for x in receiver()["devices"] if x["host"] == "192.168.1.197")
+    if REAL_PLUG not in hosts:
+        receiver("-a", f"{APP}.ADD_DEVICE", "--es", "host", REAL_PLUG, "--es", "name", "'Energy plug'")
+    name = next(x["name"] for x in receiver()["devices"] if x["host"] == REAL_PLUG)
     open_app()
     open_device(name)
     d = wait_for(lambda: (x := device_state()) and re.search(r"Used this month: [\d.]+ k?Wh", x["stats"]) and x, 15, "energy")
@@ -791,14 +803,16 @@ def test_screensaver_clock_and_idle_timer():
 
 def test_refind_moves_a_plug_back_on_the_tv():
     """A real Kasa plug, given a wrong address, is found again by the TV itself (no switching)."""
+    if not REAL_PLUG:
+        raise Skip("set REAL_PLUG=<Kasa plug address> to run it")
     open_app()
     hosts = {d["host"] for d in receiver()["devices"]}
-    if "192.168.1.198" not in hosts:
-        receiver("-a", f"{APP}.ADD_DEVICE", "--es", "host", "192.168.1.198", "--es", "name", "'Refind plug'")
-    name = next(d["name"] for d in receiver()["devices"] if d["host"] == "192.168.1.198")
+    if REAL_PLUG not in hosts:
+        receiver("-a", f"{APP}.ADD_DEVICE", "--es", "host", REAL_PLUG, "--es", "name", "'Refind plug'")
+    name = next(d["name"] for d in receiver()["devices"] if d["host"] == REAL_PLUG)
     receiver("-a", f"{APP}.SET_HOST", "--es", "name", f"'{name}'", "--es", "host", "192.0.2.77")
-    wait_for(lambda: next(d for d in receiver()["devices"] if d["name"] == name)["host"] == "192.168.1.198", 90,
-             f"the TV to find {name} again at 192.168.1.198")
+    wait_for(lambda: next(d for d in receiver()["devices"] if d["name"] == name)["host"] == REAL_PLUG, 90,
+             f"the TV to find {name} again at {REAL_PLUG}")
     receiver("-a", f"{APP}.REMOVE", "--es", "name", f"'{name}'")
 
 
@@ -877,6 +891,8 @@ def main():
             try:
                 fn()
                 print(f"  PASS  {name}  ({time.time() - t0:.0f}s)", flush=True)
+            except Skip as s:
+                print(f"  SKIP  {name}: {s}", flush=True)
             except Exception as e:
                 shot = ui.screenshot("smarthome_" + name)
                 msg = str(e) or traceback.format_exc(limit=1).strip().split("\n")[-1]

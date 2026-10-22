@@ -14,7 +14,9 @@ back at the end, pass or fail. Screenshots of failures go to test-results/.
 """
 import importlib.util, os, re, subprocess, sys, time, traceback
 
-TV = os.environ.get("TV_HOST", "192.168.1.248") + ":5555"
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "tools") if "tests" in __file__ else os.path.dirname(os.path.abspath(__file__)))
+import tvconf  # noqa: E402
+TV = tvconf.tv()   # TV_HOST, or tv.conf at the repo root
 PKG = "com.gathin.tvhome"
 HOME = f"{PKG}/.MainActivity"
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
