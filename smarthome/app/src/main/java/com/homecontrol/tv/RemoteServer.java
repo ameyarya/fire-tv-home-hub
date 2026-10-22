@@ -29,7 +29,8 @@ final class RemoteServer {
 
     private final Context app;
     private final Remote remote;
-    private final ExecutorService pool = Executors.newFixedThreadPool(4);
+    // A thread per connection: a camera stream holds its connection for as long as someone watches.
+    private final ExecutorService pool = Executors.newCachedThreadPool();
     private ServerSocket server, secure;
     private byte[] page;
 
@@ -91,7 +92,7 @@ final class RemoteServer {
 
     private void handle(Socket c, boolean tls) {
         try (Socket sock = c) {
-            sock.setSoTimeout(20_000);   // finding devices takes ~8 s
+            sock.setSoTimeout(20_000);   // finding devices takes ~8 s (reading only: streams write for as long as needed)
             InputStream in = new BufferedInputStream(sock.getInputStream());
             String request = line(in);
             if (request == null) return;
@@ -175,7 +176,7 @@ final class RemoteServer {
         }
         String action = p[3];
         if (method.equals("GET") && action.equals("status")) {
-            reply(out, 200, "application/json", remote.status().toString());
+            reply(out, 200, "application/json", remote.status().put("cameras", CameraRelay.states()).toString());
         } else if (method.equals("GET") && action.equals("apps")) {
             reply(out, 200, "application/json", remote.appsJson().toString());
         } else if (method.equals("POST") && action.equals("key")) {
@@ -211,6 +212,13 @@ final class RemoteServer {
             reply(out, why == null ? 204 : 400, "text/plain", why == null ? "" : why);
         } else if (method.equals("POST") && action.equals("automation-delete")) {
             reply(out, HomeApi.deleteAutomation(app, param(query, "id")) ? 204 : 400, "text/plain", "");
+        } else if (method.equals("GET") && action.equals("camera.mjpg")) {   // the camera live, for <img>
+            Home.Camera cam = HomeApi.camera(app, param(query, "id"));
+            if (cam == null) {
+                reply(out, 404, "text/plain", "no such camera");
+                return;
+            }
+            stream(CameraRelay.get(app, cam), out);
         } else if (method.equals("POST") && action.equals("camera-show")) {
             answer(out, HomeApi.showCamera(app, param(query, "id")));
         } else if (method.equals("POST") && action.equals("find-devices")) {
@@ -253,6 +261,40 @@ final class RemoteServer {
             lockedUntil = now + 60_000;
         }
         reply(out, 403, "text/plain", "Wrong code");
+    }
+
+    /** MJPEG: each new frame as one part of a multipart response, until the viewer goes away. */
+    private static void stream(CameraRelay relay, OutputStream out) throws IOException {
+        relay.join();
+        try {
+            out.write(("HTTP/1.1 200 OK\r\nContent-Type: multipart/x-mixed-replace; boundary=frame\r\n"
+                    + "Cache-Control: no-store\r\nConnection: close\r\n\r\n").getBytes(StandardCharsets.UTF_8));
+            out.flush();
+            long[] number = {0};
+            long last = 0;
+            int misses = 0;
+            while (misses < 3) {   // ~45 s with no picture: give up
+                byte[] j;
+                try {
+                    j = relay.next(last, 15_000, number);
+                } catch (InterruptedException e) {
+                    return;
+                }
+                if (j == null) {
+                    misses++;
+                    continue;
+                }
+                misses = 0;
+                last = number[0];
+                out.write(("--frame\r\nContent-Type: image/jpeg\r\nContent-Length: " + j.length + "\r\n\r\n")
+                        .getBytes(StandardCharsets.UTF_8));
+                out.write(j);
+                out.write("\r\n".getBytes(StandardCharsets.UTF_8));
+                out.flush();
+            }
+        } finally {
+            relay.leave();
+        }
     }
 
     /** 204 when done, else 400 with what's wrong (shown on the phone). */

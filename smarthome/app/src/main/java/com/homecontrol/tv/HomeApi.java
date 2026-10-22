@@ -243,6 +243,13 @@ final class HomeApi {
      * Phone browsers can't play RTSP, so the TV shows it. Needs the "display over other apps" app-op
      * (install-smarthome.sh) to open from the background. Null when shown, else what's wrong.
      */
+    static Home.Camera camera(Context c, String id) {
+        return onMain(() -> {
+            for (Home.Camera x : Storage.get(c).cameras) if (x.id.equals(id)) return x;
+            return null;
+        });
+    }
+
     @SuppressWarnings("deprecation")
     static String showCamera(Context c, String id) {
         Home.Camera cam = onMain(() -> {

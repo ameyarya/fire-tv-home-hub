@@ -116,6 +116,8 @@
   .actions button { flex: 1; height: 50px; border-radius: 14px; background: var(--tile2); font-weight: 600; }
   .actions .primary { background: var(--on); color: var(--on-text); }
   .actions .danger { color: var(--red); flex: 0 0 auto; padding: 0 18px; }
+  .camview { width: 100%; aspect-ratio: 16 / 9; background: #111; border-radius: 14px; overflow: hidden; display: grid; place-items: center; }
+  .camview img { width: 100%; height: 100%; object-fit: contain; display: block; }
   .menu button { display: flex; align-items: center; gap: 14px; width: 100%; height: 56px; padding: 0 14px; border-radius: 14px;
                  background: var(--tile); margin-bottom: 8px; font-size: 16px; font-weight: 500; text-align: left; }
   .menu button svg { color: var(--dim); }
@@ -197,6 +199,14 @@
     <div class="log" id="log"></div>
   </div>
 </div>
+<div class="sheet" id="camSheet">
+  <div class="panel">
+    <div class="grab"></div>
+    <div class="panel-head"><b id="camName">Camera</b><span class="status"><i class="dot" id="camDot"></i><span id="camStatus">Connecting…</span></span></div>
+    <div class="camview"><img id="camImg" alt=""></div>
+    <div class="actions"><button id="camTv">Show on TV</button><button class="primary" id="camClose">Close</button></div>
+  </div>
+</div>
 <div class="sheet" id="addSheet">
   <div class="panel form" id="addForm"></div>
 </div>
@@ -269,7 +279,7 @@ function render() {
     const sub = [s.onCount ? s.onCount + ' on' : '', off ? off + ' off' : ''].filter(Boolean).join(', ') || 'Empty';
     return tile('', 'i-star', '', s.name, sub, `data-scene="${esc(s.id)}"`, 'scene', s.id);
   });
-  const cams = h.cameras.map(c => tile('', 'i-cam', '', c.name, 'Tap to show on the TV', `data-cam="${esc(c.id)}"`, 'camera', c.id));
+  const cams = h.cameras.map(c => tile('', 'i-cam', 'LIVE', c.name, 'Tap to watch', `data-cam="${esc(c.id)}"`, 'camera', c.id));
   const plugs = h.devices.map(d => {
     const state = !d.online ? 'Not answering' : d.watts !== undefined && d.on ? d.watts + ' W' :
       d.tempC !== undefined ? Math.round(d.tempC) + '°' + (d.humidity !== undefined ? ' · ' + Math.round(d.humidity) + '%' : '') : '';
@@ -332,16 +342,37 @@ $('#sections').addEventListener('click', e => {
     t.classList.add('flash'); setTimeout(() => t.classList.remove('flash'), 400);
     const name = t.querySelector('.name').textContent;
     post(`scene?id=${encodeURIComponent(t.dataset.scene)}`).then(r => r && r.json()).then(j => { if (j) toast(`${name}: ${j.done} done`); load(); });
-  } else if (t.dataset.cam) {   // phone browsers can't play the camera's stream: the TV shows it
-    const name = t.querySelector('.name').textContent;
-    t.classList.add('flash'); setTimeout(() => t.classList.remove('flash'), 400);
-    post('camera-show?id=' + encodeURIComponent(t.dataset.cam)).then(async r => {
-      if (r) toast(r.ok ? `Showing ${name} on the TV` : await r.text());
-    });
+  } else if (t.dataset.cam) {
+    watch(t.dataset.cam, t.querySelector('.name').textContent);
   } else if (t.dataset.auto) {
     editAuto(home.automations.find(a => a.id === t.dataset.auto));
   }
 });
+
+// ---- watching a camera: the TV relays it as MJPEG (pictures only), shown in an <img> ----
+let watching = null;
+function watch(id, name) {
+  watching = id;
+  $('#camName').textContent = name;
+  $('#camDot').className = 'dot warn'; $('#camStatus').textContent = 'Connecting…';
+  const img = $('#camImg');
+  img.onload = () => { if (watching === id) { $('#camDot').className = 'dot ok'; $('#camStatus').textContent = 'Live'; } };
+  img.onerror = () => { if (watching === id) { $('#camDot').className = 'dot bad'; $('#camStatus').textContent = 'No picture'; } };
+  img.src = api + 'camera.mjpg?id=' + encodeURIComponent(id) + '&t=' + Date.now();
+  sheet('#camSheet', true);
+}
+function unwatch() {   // dropping the image closes the stream, so the TV stops relaying
+  watching = null;
+  $('#camImg').removeAttribute('src');
+  sheet('#camSheet', false);
+}
+$('#camClose').onclick = unwatch;
+$('#camSheet').addEventListener('click', e => { if (e.target.id === 'camSheet') unwatch(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden && watching) unwatch(); });
+$('#camTv').onclick = () => {
+  const id = watching, name = $('#camName').textContent;
+  post('camera-show?id=' + encodeURIComponent(id)).then(async r => { if (r) toast(r.ok ? `Showing ${name} on the TV` : await r.text()); });
+};
 
 // ---- + Add: the same choices as the TV's + Add ----
 const addForm = $('#addForm');
