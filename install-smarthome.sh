@@ -9,5 +9,7 @@ adb connect "$TV" >/dev/null
 adb -s "$TV" install -r "$APK"
 # Lets Smart Home switch Private DNS to Automatic and back after a power cut (DnsRescue).
 adb -s "$TV" shell pm grant com.homecontrol.tv android.permission.WRITE_SECURE_SETTINGS
+# Lets the phone page open a camera on the TV (from the background).
+adb -s "$TV" shell appops set com.homecontrol.tv SYSTEM_ALERT_WINDOW allow
 adb -s "$TV" shell cmd package compile -m speed -f com.homecontrol.tv </dev/null >/dev/null
 echo "Installed. Open Smart Home from the home screen."

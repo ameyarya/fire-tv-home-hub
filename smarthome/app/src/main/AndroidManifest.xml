@@ -17,6 +17,8 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <!-- Phone remote while the TV is off (Settings, optional): keeps the processor and Wi-Fi awake. -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- The phone page's camera tile opens the camera on the TV from the background; granted by install-smarthome.sh. -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
 
     <!-- Android 11 package visibility: the TV's input player, for the Inputs tile. -->

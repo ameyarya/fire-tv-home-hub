@@ -269,7 +269,7 @@ function render() {
     const sub = [s.onCount ? s.onCount + ' on' : '', off ? off + ' off' : ''].filter(Boolean).join(', ') || 'Empty';
     return tile('', 'i-star', '', s.name, sub, `data-scene="${esc(s.id)}"`, 'scene', s.id);
   });
-  const cams = h.cameras.map(c => tile('', 'i-cam', '', c.name, 'Watch on the TV', 'data-none="1"', 'camera', c.id));
+  const cams = h.cameras.map(c => tile('', 'i-cam', '', c.name, 'Tap to show on the TV', `data-cam="${esc(c.id)}"`, 'camera', c.id));
   const plugs = h.devices.map(d => {
     const state = !d.online ? 'Not answering' : d.watts !== undefined && d.on ? d.watts + ' W' :
       d.tempC !== undefined ? Math.round(d.tempC) + '°' + (d.humidity !== undefined ? ' · ' + Math.round(d.humidity) + '%' : '') : '';
@@ -332,6 +332,12 @@ $('#sections').addEventListener('click', e => {
     t.classList.add('flash'); setTimeout(() => t.classList.remove('flash'), 400);
     const name = t.querySelector('.name').textContent;
     post(`scene?id=${encodeURIComponent(t.dataset.scene)}`).then(r => r && r.json()).then(j => { if (j) toast(`${name}: ${j.done} done`); load(); });
+  } else if (t.dataset.cam) {   // phone browsers can't play the camera's stream: the TV shows it
+    const name = t.querySelector('.name').textContent;
+    t.classList.add('flash'); setTimeout(() => t.classList.remove('flash'), 400);
+    post('camera-show?id=' + encodeURIComponent(t.dataset.cam)).then(async r => {
+      if (r) toast(r.ok ? `Showing ${name} on the TV` : await r.text());
+    });
   } else if (t.dataset.auto) {
     editAuto(home.automations.find(a => a.id === t.dataset.auto));
   }

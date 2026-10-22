@@ -238,6 +238,33 @@ final class HomeApi {
         return Boolean.TRUE.equals(ok);
     }
 
+    /**
+     * A camera tile on the phone: its live view full screen on the TV, turning the TV on first if it's off.
+     * Phone browsers can't play RTSP, so the TV shows it. Needs the "display over other apps" app-op
+     * (install-smarthome.sh) to open from the background. Null when shown, else what's wrong.
+     */
+    @SuppressWarnings("deprecation")
+    static String showCamera(Context c, String id) {
+        Home.Camera cam = onMain(() -> {
+            for (Home.Camera x : Storage.get(c).cameras) if (x.id.equals(id)) return x;
+            return null;
+        });
+        if (cam == null) return "No such camera";
+        android.os.PowerManager pm = c.getSystemService(android.os.PowerManager.class);
+        if (!pm.isInteractive()) {   // TV off: switch the screen on
+            pm.newWakeLock(android.os.PowerManager.SCREEN_BRIGHT_WAKE_LOCK | android.os.PowerManager.ACQUIRE_CAUSES_WAKEUP,
+                    "SmartHome:camera").acquire(5000);
+        }
+        try {
+            c.startActivity(new android.content.Intent(c, CameraActivity.class).putExtra(CameraActivity.EXTRA_ID, cam.id)
+                    .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK | android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP));
+        } catch (RuntimeException e) {
+            return "The TV wouldn't open it: " + e.getMessage();
+        }
+        ActivityLog.add(c, "Camera " + cam.name + " shown on the TV from a phone");
+        return null;
+    }
+
     // ---- adding, as the TV's + Add does (Editors) ------------------------------------------------------
 
     /** Kasa (broadcast) and Shelly (mDNS) on the Wi-Fi, about 8 s; adds the new ones. Their names, or null on failure. */

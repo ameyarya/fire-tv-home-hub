@@ -211,6 +211,8 @@ final class RemoteServer {
             reply(out, why == null ? 204 : 400, "text/plain", why == null ? "" : why);
         } else if (method.equals("POST") && action.equals("automation-delete")) {
             reply(out, HomeApi.deleteAutomation(app, param(query, "id")) ? 204 : 400, "text/plain", "");
+        } else if (method.equals("POST") && action.equals("camera-show")) {
+            answer(out, HomeApi.showCamera(app, param(query, "id")));
         } else if (method.equals("POST") && action.equals("find-devices")) {
             JSONArray added = HomeApi.findDevices(app);
             reply(out, 200, "application/json", added == null ? "[]" : added.toString());
