@@ -1,0 +1,5 @@
+dependencies:
+  idf: ">=5.3"
+  m5stack/m5unified: "0.2.27"
+  m5stack/m5gfx: "0.2.34"
+  espressif/esp-sr: "2.6.0"

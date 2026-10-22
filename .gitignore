@@ -1,0 +1,18 @@
+# builds and downloaded tools
+build/
+.gradle/
+local.properties
+__pycache__/
+*-venv/
+.venv/
+# voice stick: ESP-IDF output, downloaded components, and the private Wi-Fi/TV settings
+stick/managed_components/
+stick/sdkconfig
+stick/sdkconfig.old
+stick/dependencies.lock
+stick/main/secrets.h
+stick/flash.log
+# your TV's backups and test screenshots
+backup/
+test-results/
+.DS_Store

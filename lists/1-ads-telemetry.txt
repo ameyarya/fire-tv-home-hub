@@ -1,0 +1,16 @@
+# Batch 1: Amazon ads, shopping, content recognition, telemetry, tutorials. Safe on Fire OS (matches the Toshiba/Insignia Fire TV lists).
+com.amazon.shoptv.client            # Shop on Fire TV
+com.amazon.tv.acr                   # Automatic content recognition (watches what's on screen, incl. HDMI)
+com.amazon.tv.democontent.provider  # Store demo content
+com.amazon.media.recommendations    # Sponsored/recommendation rows feeder
+com.amazon.sneakpeek                # Autoplaying previews on home
+com.amazon.ftvads.deeplinking       # Ad deep links (may be protected; refusal is harmless)
+com.amazon.hybridadidservice        # Advertising ID service
+com.amazon.wirelessmetrics.service  # Wi-Fi metrics upload
+com.amazon.perfcollection           # Performance telemetry
+com.amazon.perfc                    # Performance telemetry
+com.amazon.dp.logger                # Device logging upload
+com.amazon.device.telemetry.emitter # Telemetry emitter
+com.amazon.device.crashmanager      # Crash report upload
+com.amazon.storm.lightning.tutorial # Tutorials
+com.amazon.tmm.tutorial             # Tutorials

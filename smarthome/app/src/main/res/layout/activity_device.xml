@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#FF000000"
+    android:paddingStart="80dp"
+    android:paddingEnd="80dp"
+    android:paddingTop="48dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <ImageView
+            android:id="@+id/bigIcon"
+            android:layout_width="84dp"
+            android:layout_height="84dp"
+            android:contentDescription="@null" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="28dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#FFFFFFFF"
+                android:textSize="38sp"
+                android:fontFamily="@font/outfit"
+                android:fontVariationSettings="'wght' 400" />
+
+            <TextView
+                android:id="@+id/where"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#99FFFFFF"
+                android:textSize="15sp"
+                android:fontFamily="@font/outfit" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/bigState"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#FFFFFFFF"
+            android:textSize="44sp"
+            android:fontFamily="@font/outfit"
+            android:fontVariationSettings="'wght' 300" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/stats"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="36dp"
+        android:orientation="horizontal" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="32dp"
+        android:layout_marginStart="-10dp"
+        android:orientation="horizontal">
+
+        <TextView android:id="@+id/btnToggle" style="@style/Pill" />
+        <TextView android:id="@+id/btnFavorite" style="@style/Pill" />
+        <TextView android:id="@+id/btnRoom" style="@style/Pill" />
+        <TextView android:id="@+id/btnRename" style="@style/Pill" android:text="@string/rename" />
+        <TextView android:id="@+id/btnMove" style="@style/Pill" android:text="Move" />
+        <TextView android:id="@+id/btnRemove" style="@style/Pill" android:text="@string/remove" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="36dp"
+        android:text="@string/recent_activity"
+        android:textColor="#8CFFFFFF"
+        android:textSize="12sp"
+        android:fontFamily="@font/outfit"
+        android:letterSpacing="0.18"
+        android:textAllCaps="true" />
+
+    <TextView
+        android:id="@+id/history"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:lineSpacingExtra="6dp"
+        android:textColor="#CCFFFFFF"
+        android:textSize="15sp"
+        android:fontFamily="@font/outfit" />
+</LinearLayout>

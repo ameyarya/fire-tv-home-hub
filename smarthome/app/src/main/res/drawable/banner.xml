@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 16:9 tile for the TV's home screen: the app icon's green, the house in the middle. The house is placed
+     with insets (320x180 frame, 96dp house): item width/height are ignored on the TV's Android 11. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <size android:width="320dp" android:height="180dp" />
+            <gradient android:angle="315" android:startColor="#FF3BA877" android:endColor="#FF0F3D2C" />
+        </shape>
+    </item>
+    <item android:drawable="@drawable/ic_home" android:left="112dp" android:right="112dp" android:top="42dp" android:bottom="42dp" />
+</layer-list>

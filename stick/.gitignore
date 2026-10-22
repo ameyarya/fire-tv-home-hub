@@ -1,0 +1,7 @@
+build/
+managed_components/
+sdkconfig
+sdkconfig.old
+dependencies.lock
+# Wi-Fi password and the TV's remote secret: written by setup.sh, never committed
+main/secrets.h

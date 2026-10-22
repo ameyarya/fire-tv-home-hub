@@ -1,0 +1,579 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Smart Home">
+<meta name="theme-color" content="#000000">
+<title>Smart Home</title>
+<style>
+  /* Smart Home on a phone, in the look of the TV app: black, rounded dark tiles, white when on. */
+  :root { --bg: #000; --tile: #1c1c1e; --tile2: #2c2c2e; --text: #f2f2f7; --dim: #8e8e93; --line: #2c2c2e;
+          --on: #f2f2f7; --on-text: #000; --green: #30d158; --orange: #ff9f0a; --red: #ff453a; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { overflow-x: hidden; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); font: 16px -apple-system, system-ui, sans-serif; }
+  body { padding: max(14px, env(safe-area-inset-top)) 16px max(28px, env(safe-area-inset-bottom)); max-width: 560px; margin: 0 auto;
+         -webkit-user-select: none; user-select: none; overscroll-behavior: none; }
+  button { font: inherit; color: inherit; border: 0; background: none; padding: 0; cursor: pointer; }
+  svg { width: 22px; height: 22px; fill: currentColor; flex: none; }
+
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 6px 0 2px; }
+  h1 { font-size: 32px; font-weight: 600; margin: 0; letter-spacing: -.01em; }
+  #summary { color: var(--dim); font-size: 14px; margin: 0 0 14px; min-height: 18px; }
+  .pills { display: flex; gap: 8px; }
+  .pill { height: 38px; padding: 0 14px; border-radius: 19px; background: var(--tile); display: inline-flex; align-items: center; gap: 6px;
+          font-size: 14px; font-weight: 500; }
+  .pill.icon { width: 38px; padding: 0; justify-content: center; }
+  .pill:active { background: var(--tile2); }
+
+  .filters { display: flex; gap: 8px; overflow-x: auto; margin: 0 0 6px; padding: 0 0 4px; scrollbar-width: none; }
+  .filters::-webkit-scrollbar { display: none; }
+  .filters button { height: 34px; padding: 0 14px; border-radius: 17px; background: var(--tile); font-size: 14px; white-space: nowrap; flex: none; }
+  .filters button.on { background: var(--tile2); color: #fff; box-shadow: inset 0 0 0 1px #48484a; }
+
+  h2 { display: flex; justify-content: space-between; align-items: center; }
+  .smv { display: none; gap: 8px; }
+  .smv span { width: 34px; height: 30px; border-radius: 10px; background: #3a3a3c; color: #fff; display: grid; place-items: center;
+              font-size: 12px; letter-spacing: 0; cursor: pointer; }
+  body.editing .smv { display: flex; }
+  h2 { font-size: 12px; font-weight: 600; color: var(--dim); letter-spacing: .14em; text-transform: uppercase; margin: 22px 2px 10px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .tile { background: var(--tile); border-radius: 18px; padding: 14px; min-height: 104px; display: flex; flex-direction: column;
+          justify-content: space-between; text-align: left; position: relative; }
+  .tile:active { transform: scale(.98); }
+  .tile .top { display: flex; justify-content: space-between; align-items: flex-start; }
+  .tile .badge { font-size: 12px; font-weight: 600; letter-spacing: .06em; color: var(--dim); }
+  .tile .name { font-weight: 600; font-size: 16px; margin-top: 10px; }
+  .tile .sub { font-size: 13px; color: var(--dim); margin-top: 2px; }
+  .tile.on .top svg { color: var(--green); }
+  .tile.on .badge { color: var(--text); }
+  .tile.flash { background: var(--on); color: var(--on-text); } .tile.flash .sub { color: #3a3a3c; }
+  .tile.offline { opacity: .45; }
+  .tile.auto.off { opacity: .55; }
+  .empty { color: var(--dim); font-size: 14px; }
+
+  /* sheets: the TV remote and Activity slide up over the page */
+  .sheet { position: fixed; inset: 0; background: rgb(0 0 0 / .6); display: none; z-index: 10; }
+  .sheet.open { display: block; }
+  .panel { position: absolute; left: 0; right: 0; bottom: 0; max-width: 560px; margin: 0 auto; background: #111;
+           border-radius: 22px 22px 0 0; padding: 10px 16px max(22px, env(safe-area-inset-bottom)); max-height: 92vh; overflow: auto; }
+  .grab { width: 40px; height: 5px; border-radius: 3px; background: #48484a; margin: 0 auto 10px; }
+  .panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .panel-head b { font-size: 18px; }
+  .panel-head .status { font-size: 13px; color: var(--dim); display: flex; align-items: center; gap: 6px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--dim); display: inline-block; }
+  .dot.ok { background: var(--green); } .dot.warn { background: var(--orange); } .dot.bad { background: var(--red); }
+
+  #pad { aspect-ratio: 1.15; width: 100%; border-radius: 26px; background: var(--tile); position: relative; touch-action: none; overflow: hidden; }
+  #pad .hint { position: absolute; inset: 0; display: grid; place-items: center; color: #48484a; font-size: 13px; pointer-events: none; }
+  #dot { position: absolute; width: 60px; height: 60px; margin: -30px 0 0 -30px; border-radius: 50%; background: rgb(255 255 255 / .12);
+         opacity: 0; transition: opacity .25s; pointer-events: none; }
+  .keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 12px; }
+  .key { height: 54px; border-radius: 16px; background: var(--tile); display: grid; place-items: center; }
+  .key:active, .key.down { background: var(--tile2); }
+  .key.power { color: var(--red); }
+  .type { display: flex; gap: 8px; margin-top: 12px; }
+  .type input { flex: 1; min-width: 0; height: 46px; border-radius: 14px; border: 1px solid var(--line); background: var(--tile); color: var(--text);
+                padding: 0 14px; font: inherit; font-size: 16px; outline: none; -webkit-user-select: text; user-select: text; }
+  .type input:focus { border-color: #636366; }
+  .type button { height: 46px; padding: 0 16px; border-radius: 14px; background: var(--tile2); font-weight: 600; }
+  .log { font-size: 14px; line-height: 1.55; color: #c7c7cc; white-space: pre-wrap; }
+  .log div { padding: 8px 0; border-bottom: 1px solid #1f1f21; } .log time { color: var(--dim); font-size: 12px; display: block; }
+
+  /* edit mode: arrows on each tile to move it */
+  .pill.on { background: var(--on); color: var(--on-text); }
+  .mv { position: absolute; top: 8px; width: 34px; height: 34px; border-radius: 50%; background: #3a3a3c; display: none;
+        place-items: center; color: #fff; }
+  .mv svg { width: 18px; height: 18px; }
+  .mv.l { right: 50px; } .mv.r { right: 10px; } .mv.r svg { transform: rotate(180deg); }
+  body.editing .mv { display: grid; }
+  body.editing .tile .badge { visibility: hidden; }   /* the arrows take its corner */
+  body.editing .tile { box-shadow: inset 0 0 0 1px #48484a; }
+  .tile.add { align-items: center; justify-content: center; color: var(--dim); font-weight: 600; border: 1px dashed #48484a; background: none; }
+  /* the automation editor */
+  .form label { display: block; font-size: 12px; font-weight: 600; color: var(--dim); letter-spacing: .1em; text-transform: uppercase; margin: 16px 2px 8px; }
+  .form input[type=text], .form input[type=time], .form select { width: 100%; height: 46px; border-radius: 12px; border: 1px solid var(--line);
+        background: var(--tile); color: var(--text); padding: 0 12px; font: inherit; font-size: 16px; -webkit-user-select: text; user-select: text; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chips button { height: 36px; min-width: 44px; padding: 0 10px; border-radius: 18px; background: var(--tile); font-size: 14px; }
+  .chips button.on { background: var(--on); color: var(--on-text); }
+  .seg { display: inline-flex; background: var(--tile); border-radius: 10px; padding: 2px; }
+  .seg button { height: 32px; padding: 0 12px; border-radius: 8px; font-size: 14px; color: var(--dim); }
+  .seg button.on { background: #3a3a3c; color: #fff; }
+  .devrow { display: flex; justify-content: space-between; align-items: center; padding: 8px 2px; }
+  .switch-row { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; }
+  .sw { width: 51px; height: 31px; border-radius: 16px; background: #39393d; position: relative; }
+  .sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; transition: left .15s; }
+  .sw.on { background: var(--green); } .sw.on::after { left: 22px; }
+  .actions { display: flex; gap: 10px; margin-top: 22px; }
+  .actions button { flex: 1; height: 50px; border-radius: 14px; background: var(--tile2); font-weight: 600; }
+  .actions .primary { background: var(--on); color: var(--on-text); }
+  .actions .danger { color: var(--red); flex: 0 0 auto; padding: 0 18px; }
+  .menu button { display: flex; align-items: center; gap: 14px; width: 100%; height: 56px; padding: 0 14px; border-radius: 14px;
+                 background: var(--tile); margin-bottom: 8px; font-size: 16px; font-weight: 500; text-align: left; }
+  .menu button svg { color: var(--dim); }
+  .menu small { color: var(--dim); font-weight: 400; font-size: 13px; margin-left: auto; }
+  .note { color: var(--dim); font-size: 13px; line-height: 1.45; margin-top: 10px; }
+  .err { color: var(--orange); font-size: 14px; margin-top: 10px; min-height: 18px; }
+  .toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); background: #2c2c2e; padding: 10px 16px; border-radius: 12px;
+           font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 20; }
+  .toast.show { opacity: 1; }
+  .pair { margin-top: 40px; } .pair p { color: var(--dim); line-height: 1.45; }
+</style>
+</head>
+<body>
+<svg style="display:none">
+  <symbol id="i-plug" viewBox="0 0 24 24"><path d="M16 7V3h-2v4h-4V3H8v4c-1.1 0-2 .9-2 2v5.5L9.5 18v3h5v-3l3.5-3.5V9c0-1.1-.9-2-2-2z"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></symbol>
+  <symbol id="i-cam" viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 .01 20.01A10 10 0 0 0 12 2zm4.2 14.2L11 13V7h1.5v5.2l4.5 2.7-.8 1.3z"/></symbol>
+  <symbol id="i-sensor" viewBox="0 0 24 24"><path d="M15 13V5a3 3 0 0 0-6 0v8a5 5 0 1 0 6 0zm-3-9a1 1 0 0 1 1 1v3h-2V5a1 1 0 0 1 1-1z"/></symbol>
+  <symbol id="i-tv" viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M15.4 7.4 14 6l-6 6 6 6 1.4-1.4L10.8 12z"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M4 5v14l9-7zm11 0h2.5v14H15zm4.5 0H22v14h-2.5z"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></symbol>
+  <symbol id="i-vdown" viewBox="0 0 24 24"><path d="M5 9v6h4l5 5V4L9 9H5zm11.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4z"/></symbol>
+  <symbol id="i-vup" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4zM14 3.2v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6z"/></symbol>
+  <symbol id="i-mute" viewBox="0 0 24 24"><path d="M16.5 12A4.5 4.5 0 0 0 14 8v2.2l2.5 2.5V12zM19 12c0 .9-.2 1.8-.5 2.6l1.5 1.5A8.8 8.8 0 0 0 21 12a9 9 0 0 0-7-8.8v2.1A7 7 0 0 1 19 12zM4.3 3 3 4.3 7.7 9H3v6h4l5 5v-6.7l4.3 4.3c-.7.5-1.4.9-2.3 1.1v2.1a9 9 0 0 0 3.7-1.8l2 2 1.3-1.3L4.3 3zM12 4 9.9 6.1 12 8.2V4z"/></symbol>
+  <symbol id="i-power" viewBox="0 0 24 24"><path d="M13 3h-2v10h2V3zm4.8 2.2-1.4 1.4A7 7 0 1 1 7.6 6.6L6.2 5.2A9 9 0 1 0 17.8 5.2z"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.8 9.94l-3.75-3.75L3 17.25zM20.7 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></symbol>
+  <symbol id="i-kbd" viewBox="0 0 24 24"><path d="M20 5H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm-9 3h2v2h-2V8zm0 3h2v2h-2v-2zM8 8h2v2H8V8zm0 3h2v2H8v-2zm-1 2H5v-2h2v2zm0-3H5V8h2v2zm9 7H8v-2h8v2zm0-4h-2v-2h2v2zm0-3h-2V8h2v2zm3 3h-2v-2h2v2zm0-3h-2V8h2v2z"/></symbol>
+</svg>
+
+<div id="app">
+  <header>
+    <h1>Home</h1>
+    <div class="pills">
+      <button class="pill" id="openRemote"><svg><use href="#i-tv"/></svg>Remote</button>
+      <button class="pill icon" id="editBtn" aria-label="Move tiles"><svg><use href="#i-edit"/></svg></button>
+      <button class="pill icon" id="openLog" aria-label="Activity"><svg><use href="#i-list"/></svg></button>
+      <button class="pill icon" id="addBtn" aria-label="Add"><svg><use href="#i-plus"/></svg></button>
+    </div>
+  </header>
+  <div id="summary"></div>
+  <div class="filters" id="filters">
+    <button data-f="all" class="on">All</button><button data-f="plugs">Plugs</button><button data-f="cameras">Cameras</button>
+    <button data-f="scenes">Scenes</button><button data-f="autos">Automations</button>
+  </div>
+  <div id="sections"></div>
+</div>
+
+<div class="sheet" id="remoteSheet">
+  <div class="panel">
+    <div class="grab"></div>
+    <div class="panel-head"><b>TV Remote</b><span class="status"><i class="dot" id="rDot"></i><span id="rStatus">…</span></span></div>
+    <div id="pad"><div class="hint">Swipe to move · tap to select</div><div id="dot"></div></div>
+    <div class="keys">
+      <button class="key" data-key="4" aria-label="Back"><svg><use href="#i-back"/></svg></button>
+      <button class="key" data-key="3" aria-label="Home"><svg><use href="#i-home"/></svg></button>
+      <button class="key" data-key="85" aria-label="Play or pause"><svg><use href="#i-play"/></svg></button>
+      <button class="key" data-key="82" aria-label="Menu"><svg><use href="#i-menu"/></svg></button>
+      <button class="key" data-key="25" data-repeat aria-label="Volume down"><svg><use href="#i-vdown"/></svg></button>
+      <button class="key" data-key="24" data-repeat aria-label="Volume up"><svg><use href="#i-vup"/></svg></button>
+      <button class="key" data-key="164" aria-label="Mute"><svg><use href="#i-mute"/></svg></button>
+      <button class="key power" data-key="power" aria-label="Power"><svg><use href="#i-power"/></svg></button>
+    </div>
+    <div class="type">
+      <input id="text" placeholder="Type on the TV" autocomplete="off" autocapitalize="off" enterkeyhint="send">
+      <button id="send">Send</button>
+    </div>
+  </div>
+</div>
+
+<div class="sheet" id="logSheet">
+  <div class="panel">
+    <div class="grab"></div>
+    <div class="panel-head"><b>Activity</b></div>
+    <div class="log" id="log"></div>
+  </div>
+</div>
+<div class="sheet" id="addSheet">
+  <div class="panel form" id="addForm"></div>
+</div>
+<div class="sheet" id="autoSheet">
+  <div class="panel form" id="autoForm"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = t => String(t).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+function buzz() { if (navigator.vibrate) navigator.vibrate(8); }
+function toast(t) { const e = $('#toast'); e.textContent = t; e.classList.add('show'); clearTimeout(e._t); e._t = setTimeout(() => e.classList.remove('show'), 2200); }
+
+// ---- the secret: from the QR code's link (/r/<secret>) or the 4-digit code, kept on this phone ----
+function saved() { try { return localStorage.getItem('tvToken'); } catch (e) { return null; } }
+function keep(t) { try { localStorage.setItem('tvToken', t); } catch (e) {} }
+const token = location.pathname.startsWith('/r/') ? location.pathname.split('/')[2] : saved();
+if (location.pathname.startsWith('/r/') && token) { keep(token); history.replaceState(null, '', '/'); }
+const api = '/api/' + token + '/';
+if (!token) {
+  document.body.innerHTML = `<div class="pair"><h1>Smart Home</h1>
+    <p>Enter the 4-digit code shown on the TV in Smart Home → Settings → Phone remote.</p>
+    <div class="type"><input id="code" inputmode="numeric" maxlength="4" placeholder="Code" autocomplete="one-time-code"><button id="pair">Pair</button></div>
+    <p id="msg"></p></div>`;
+  const pair = () => fetch('/api/pair', { method: 'POST', body: $('#code').value.trim() }).then(async r => {
+    if (r.ok) { keep(await r.text()); location.reload(); } else $('#msg').textContent = await r.text();
+  }).catch(() => { $('#msg').textContent = 'The TV isn\u2019t answering.'; });
+  $('#pair').onclick = pair;
+  $('#code').addEventListener('keydown', e => { if (e.key === 'Enter') pair(); });
+  throw 'not paired';
+}
+function post(path, body) {
+  return fetch(api + path, { method: 'POST', body: body || '', headers: { 'Content-Type': 'text/plain' } })
+    .then(r => { if (r.status === 404) { try { localStorage.removeItem('tvToken'); } catch (e) {} location.replace('/'); } return r; })
+    .catch(() => { toast('The TV isn\u2019t answering'); return null; });
+}
+
+// ---- Home: like the TV app ----
+let home = null, filter = 'all';
+try { filter = localStorage.getItem('shFilter') || 'all'; } catch (e) {}
+
+function summary(h) {
+  const on = h.devices.filter(d => d.online && d.on && d.switch);
+  const watts = on.reduce((s, d) => s + (d.watts || 0), 0);
+  const parts = [on.length ? `${on.length} plug${on.length > 1 ? 's' : ''} on` : 'Everything off'];
+  if (watts > 0) parts.push(Math.round(watts) + ' W now');
+  const next = h.automations.find(a => a.enabled && a.next);
+  if (next) parts.push(`Next: ${next.name} at ${next.next}`);
+  return parts.join(' · ');
+}
+function tile(cls, icon, badge, name, sub, data, kind, id) {
+  const mv = kind ? `<span class="mv l" data-move="${kind}" data-id="${esc(id)}" data-by="-1"><svg><use href="#i-back"/></svg></span>
+    <span class="mv r" data-move="${kind}" data-id="${esc(id)}" data-by="1"><svg><use href="#i-back"/></svg></span>` : '';
+  return `<div class="tile ${cls}" role="button" ${data}><span class="top"><svg><use href="#${icon}"/></svg><span class="badge">${esc(badge)}</span></span>
+    <span><div class="name">${esc(name)}</div><div class="sub">${esc(sub)}</div></span>${mv}</div>`;
+}
+function section(title, tiles, show, key) {
+  if (!show || !tiles.length) return '';
+  const arrows = `<span class="smv"><span data-move="section" data-id="${key}" data-by="-1">▲</span><span data-move="section" data-id="${key}" data-by="1">▼</span></span>`;
+  return `<h2>${title}${arrows}</h2><div class="grid">${tiles.join('')}</div>`;
+}
+function render() {
+  const h = home;
+  if (!h) return;
+  $('#summary').textContent = summary(h);
+  const show = f => filter === 'all' || filter === f;
+  const scenes = h.scenes.map(s => {
+    const off = s.actions - s.onCount;
+    const sub = [s.onCount ? s.onCount + ' on' : '', off ? off + ' off' : ''].filter(Boolean).join(', ') || 'Empty';
+    return tile('', 'i-star', '', s.name, sub, `data-scene="${esc(s.id)}"`, 'scene', s.id);
+  });
+  const cams = h.cameras.map(c => tile('', 'i-cam', '', c.name, 'Watch on the TV', 'data-none="1"', 'camera', c.id));
+  const plugs = h.devices.map(d => {
+    const state = !d.online ? 'Not answering' : d.watts !== undefined && d.on ? d.watts + ' W' :
+      d.tempC !== undefined ? Math.round(d.tempC) + '°' + (d.humidity !== undefined ? ' · ' + Math.round(d.humidity) + '%' : '') : '';
+    return tile((d.on ? 'on ' : '') + (d.online ? '' : 'offline'), d.switch ? 'i-plug' : 'i-sensor',
+      d.switch && d.online ? (d.on ? 'ON' : 'OFF') : '', d.name, state,
+      d.switch ? `data-dev="${esc(d.id)}" data-on="${d.on ? 1 : 0}"` : 'data-none="1"', 'device', d.id);
+  });
+  const autos = h.automations.map(a => tile('auto ' + (a.enabled ? 'on' : 'off'), 'i-clock', a.enabled ? 'ON' : 'OFF', a.name,
+    a.describe + (a.enabled && a.next ? ' · next ' + a.next : ''), `data-auto="${esc(a.id)}"`, 'automation', a.id));
+  // in the shared order (Settings → Section order on the TV, or ▲▼ here in edit mode)
+  const parts = { scenes: () => section('Scenes', scenes, show('scenes'), 'scenes'),
+    cameras: () => section('Cameras', cams, show('cameras'), 'cameras'),
+    plugs: () => section('Plugs & lights', plugs, show('plugs'), 'plugs'),
+    automations: () => section('Automations', autos, show('autos'), 'automations') };
+  const html = (h.sections || Object.keys(parts)).map(k => parts[k] ? parts[k]() : '').join('');
+  $('#sections').innerHTML = html || '<p class="empty">Nothing here yet.</p>';
+}
+function load() {
+  if (document.hidden) return;
+  fetch(api + 'home').then(r => r.json()).then(h => { home = h; render(); }).catch(() => { $('#summary').textContent = 'The TV isn\u2019t answering'; });
+}
+$('#filters').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  filter = b.dataset.f;
+  try { localStorage.setItem('shFilter', filter); } catch (err) {}
+  document.querySelectorAll('#filters button').forEach(x => x.classList.toggle('on', x === b));
+  render();
+});
+document.querySelectorAll('#filters button').forEach(x => x.classList.toggle('on', x.dataset.f === filter));
+let editing = false;
+$('#editBtn').onclick = () => {
+  editing = !editing;
+  document.body.classList.toggle('editing', editing);
+  $('#editBtn').classList.toggle('on', editing);
+  toast(editing ? 'Arrows move tiles and sections; tap a scene to edit it. Tap ✎ again when done.' : 'Done');
+};
+if (location.hash === '#edit') $('#editBtn').click();   // open straight into edit mode
+if (location.hash === '#add') setTimeout(addMenu, 0);   // or straight into + Add
+$('#sections').addEventListener('click', e => {
+  const mv = e.target.closest('[data-move]');
+  if (mv) {
+    buzz();
+    post(`move?kind=${mv.dataset.move}&id=${encodeURIComponent(mv.dataset.id)}&by=${mv.dataset.by}`).then(r => {
+      if (r && !r.ok) toast(mv.dataset.by === '-1' ? 'Already first' : 'Already last');
+      load();
+    });
+    return;
+  }
+  const t = e.target.closest('.tile'); if (!t || t.dataset.none) return;
+  if (editing) {   // edit mode: arrows move; a scene opens its editor
+    if (t.dataset.scene) editScene(home.scenes.find(x => x.id === t.dataset.scene));
+    return;
+  }
+  buzz();
+  if (t.dataset.dev) {
+    const on = t.dataset.on !== '1';
+    t.classList.toggle('on', on); t.dataset.on = on ? 1 : 0; t.querySelector('.badge').textContent = on ? 'ON' : 'OFF';
+    post(`device?id=${encodeURIComponent(t.dataset.dev)}&on=${on ? 1 : 0}`).then(r => { if (r && !r.ok) toast('It didn\u2019t answer'); load(); });
+  } else if (t.dataset.scene) {
+    t.classList.add('flash'); setTimeout(() => t.classList.remove('flash'), 400);
+    const name = t.querySelector('.name').textContent;
+    post(`scene?id=${encodeURIComponent(t.dataset.scene)}`).then(r => r && r.json()).then(j => { if (j) toast(`${name}: ${j.done} done`); load(); });
+  } else if (t.dataset.auto) {
+    editAuto(home.automations.find(a => a.id === t.dataset.auto));
+  }
+});
+
+// ---- + Add: the same choices as the TV's + Add ----
+const addForm = $('#addForm');
+function addMenu() {
+  addForm.innerHTML = `<div class="grab"></div><div class="panel-head"><b>Add</b></div><div class="menu">
+    <button data-add="device"><svg><use href="#i-plug"/></svg>Plug or sensor</button>
+    <button data-add="camera"><svg><use href="#i-cam"/></svg>Camera</button>
+    <button data-add="scene"><svg><use href="#i-star"/></svg>Scene</button>
+    <button data-add="auto"><svg><use href="#i-clock"/></svg>Automation</button>
+    <button data-add="room"><svg><use href="#i-home"/></svg>Room</button></div>`;
+  sheet('#addSheet', true);
+}
+$('#addBtn').onclick = addMenu;
+function done(msg) { sheet('#addSheet', false); toast(msg); load(); }
+async function fail(r) { const e = $('#addErr'); if (e) e.textContent = r ? await r.text() : 'The TV isn\u2019t answering'; }
+addForm.addEventListener('click', async e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const kind = b.dataset.add;
+  if (kind === 'auto') { sheet('#addSheet', false); editAuto(null); }
+  else if (kind === 'scene') { sheet('#addSheet', false); editScene(null); }
+  else if (kind === 'device') {
+    addForm.innerHTML = `<div class="grab"></div><div class="panel-head"><b>Add a plug or sensor</b></div>
+      <div class="actions" style="margin-top:4px"><button class="primary" id="find">Find on Wi-Fi</button></div>
+      <p class="note">Finds Kasa and Shelly devices on your Wi-Fi (takes about 8 seconds) and adds the new ones.</p>
+      <label>Or enter its address</label><div class="type" style="margin-top:0"><input id="host" placeholder="192.168.1.50" inputmode="decimal"><button id="byIp">Add</button></div>
+      <div class="err" id="addErr"></div>`;
+  } else if (kind === 'camera') {
+    addForm.innerHTML = `<div class="grab"></div><div class="panel-head"><b>Add a camera</b></div>
+      <label>Name</label><input type="text" id="cName" placeholder="Living room" maxlength="40">
+      <label>Address</label><input type="text" id="cHost" placeholder="192.168.1.60" inputmode="decimal">
+      <label>Stream username</label><input type="text" id="cUser" placeholder="from the camera's RTSP settings" autocapitalize="off" autocomplete="off">
+      <label>Stream password</label><input type="text" id="cPass" style="-webkit-text-security:disc" autocapitalize="off" autocomplete="off">
+      <p class="note">Leave the username empty if the camera has none. The login stays on the TV; open the camera there to check the picture.</p>
+      <div class="err" id="addErr"></div><div class="actions"><button id="cancelAdd">Cancel</button><button class="primary" id="camSave">Add</button></div>`;
+  } else if (kind === 'room') {
+    addForm.innerHTML = `<div class="grab"></div><div class="panel-head"><b>Add a room</b></div>
+      <label>Name</label><input type="text" id="rName" placeholder="Bedroom" maxlength="30">
+      <div class="err" id="addErr"></div><div class="actions"><button id="cancelAdd">Cancel</button><button class="primary" id="roomSave">Add</button></div>`;
+  } else if (b.id === 'find') {
+    b.textContent = 'Looking…'; b.disabled = true;
+    const r = await post('find-devices');
+    const added = r && r.ok ? await r.json() : null;
+    if (added && added.length) done('Added ' + added.join(', '));
+    else { b.textContent = 'Find on Wi-Fi'; b.disabled = false; $('#addErr').textContent = added ? 'Nothing new found.' : 'The TV isn\u2019t answering'; }
+  } else if (b.id === 'byIp') {
+    const r = await post('device-add', $('#host').value);
+    if (r && r.ok) done('Added'); else fail(r);
+  } else if (b.id === 'camSave') {
+    const r = await post('camera-add', JSON.stringify({ name: $('#cName').value, host: $('#cHost').value, user: $('#cUser').value, pass: $('#cPass').value }));
+    if (r && r.ok) done('Camera added'); else fail(r);
+  } else if (b.id === 'roomSave') {
+    const r = await post('room-add', $('#rName').value);
+    if (r && r.ok) done('Room added'); else fail(r);
+  } else if (b.id === 'cancelAdd') sheet('#addSheet', false);
+});
+
+// ---- the scene editor: name, and each device On, Off or left alone ----
+function editScene(sc) {
+  const x = sc ? { id: sc.id, name: sc.name, steps: sc.steps.map(y => ({ ...y })) } : { id: '', name: '', steps: [] };
+  const f = $('#autoForm');
+  function draw() {
+    const state = id => { const a2 = x.steps.find(y => y.device === id); return a2 ? (a2.on ? 'on' : 'off') : 'skip'; };
+    f.innerHTML = `<div class="grab"></div><div class="panel-head"><b>${sc ? 'Edit scene' : 'New scene'}</b></div>
+      <label>Name</label><input type="text" id="sName" value="${esc(x.name)}" placeholder="e.g. Movie night" maxlength="40">
+      <label>Devices</label>${home.devices.filter(d => d.switch).map(d => `<div class="devrow"><span>${esc(d.name)}</span><span class="seg" data-dev="${esc(d.id)}">${['skip', 'on', 'off'].map(v =>
+        `<button data-v="${v}" class="${state(d.id) === v ? 'on' : ''}">${v === 'skip' ? 'Leave' : v === 'on' ? 'On' : 'Off'}</button>`).join('')}</span></div>`).join('')}
+      <div class="err" id="sErr"></div>
+      <div class="actions">${sc ? '<button class="danger" id="sDel">Delete</button>' : ''}<button id="sCancel">Cancel</button><button class="primary" id="sSave">Save</button></div>`;
+  }
+  f.onchange = null;
+  f.onclick = e => {
+    const b = e.target.closest('button'); if (!b) return;
+    x.name = $('#sName').value.trim();
+    if (b.dataset.v) {
+      const id = b.closest('[data-dev]').dataset.dev;
+      x.steps = x.steps.filter(y => y.device !== id);
+      if (b.dataset.v !== 'skip') x.steps.push({ device: id, on: b.dataset.v === 'on' });
+      draw();
+    } else if (b.id === 'sCancel') sheet('#autoSheet', false);
+    else if (b.id === 'sDel') {
+      if (!confirm('Delete ' + x.name + '? Automations that run it will stop.')) return;
+      post('scene-delete?id=' + encodeURIComponent(x.id)).then(() => { sheet('#autoSheet', false); toast('Deleted'); load(); });
+    } else if (b.id === 'sSave') {
+      post('scene-save', JSON.stringify(x)).then(async r => {
+        if (!r) return;
+        if (r.ok) { sheet('#autoSheet', false); toast('Saved'); load(); } else $('#sErr').textContent = await r.text();
+      });
+    }
+  };
+  draw();
+  sheet('#autoSheet', true);
+}
+
+// ---- the automation editor: the same choices as on the TV ----
+const TRIGGERS = [['at', 'At a time of day'], ['sunrise', 'At sunrise'], ['sunset', 'At sunset'], ['tv-on', 'When the TV turns on'], ['tv-off', 'When the TV turns off']];
+const OFFSETS = [[-60, '1 h before'], [-30, '30 min before'], [-15, '15 min before'], [0, 'Exactly then'], [15, '15 min after'], [30, '30 min after'], [60, '1 h after']];
+const WINDOWS = [[-1, -1, 'Any time'], [1080, 1380, 'In the evening (18:00–23:00)'], [1320, 360, 'At night (22:00–06:00)'], [360, 1080, 'In the daytime (06:00–18:00)']];
+const DAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+const AUTO_OFF = [[0, 'Leave them on'], [5, '5 min'], [15, '15 min'], [30, '30 min'], [60, '1 hour'], [120, '2 hours']];
+const opt = (v, label, sel) => `<option value="${v}" ${sel ? 'selected' : ''}>${esc(label)}</option>`;
+const hm = m => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+
+function editAuto(a) {
+  const x = a ? JSON.parse(JSON.stringify(a)) : { id: '', name: '', enabled: true, when: 'at', minutes: 18 * 60, days: 127,
+    window_from: -1, window_to: -1, auto_off: 0, scene: '', actions: [] };
+  let useScene = !!x.scene || (!x.actions.length && home.scenes.length > 0);
+  const f = $('#autoForm');
+  function draw() {
+    const sun = x.when === 'sunrise' || x.when === 'sunset', tv = x.when === 'tv-on' || x.when === 'tv-off';
+    // a window set on the TV that isn't one of these stays as it is, as its own choice
+    const wins = WINDOWS.slice();
+    if (x.window_from >= 0 && !wins.some(w => w[0] === x.window_from && w[1] === x.window_to))
+      wins.push([x.window_from, x.window_to, hm(x.window_from) + '–' + hm(x.window_to)]);
+    const win = wins.findIndex(w => w[0] === x.window_from && w[1] === x.window_to);
+    const devs = home.devices.filter(d => d.switch);
+    const state = id => { const a2 = x.actions.find(y => y.device === id); return a2 ? (a2.on ? 'on' : 'off') : 'skip'; };
+    f._wins = wins;
+    f.innerHTML = `<div class="grab"></div>
+      <div class="panel-head"><b>${a ? 'Edit automation' : 'New automation'}</b></div>
+      <label>Name</label><input type="text" id="aName" value="${esc(x.name)}" placeholder="e.g. Evening lights" maxlength="40">
+      <label>When</label><select id="aWhen">${TRIGGERS.map(t => opt(t[0], t[1], t[0] === x.when)).join('')}</select>
+      ${x.when === 'at' ? `<label>Time</label><input type="time" id="aTime" value="${hm(Math.max(0, x.minutes))}">` : ''}
+      ${sun ? `<label>Offset</label><select id="aOffset">${OFFSETS.map(o => opt(o[0], o[1], o[0] === x.minutes)).join('')}</select>` : ''}
+      ${tv ? `<label>Only</label><select id="aWindow">${wins.map((w, i) => opt(i, w[2], i === Math.max(0, win))).join('')}</select>` : ''}
+      <label>Days</label><div class="chips" id="aDays">${DAYS.map((d, i) => `<button data-day="${i}" class="${x.days & (1 << i) ? 'on' : ''}">${d}</button>`).join('')}</div>
+      <label>Do</label><div class="seg" id="aMode"><button data-m="scene" class="${useScene ? 'on' : ''}">Run a scene</button><button data-m="devices" class="${useScene ? '' : 'on'}">Switch devices</button></div>
+      ${useScene ? `<div style="margin-top:10px"><select id="aScene">${opt('', 'Choose a scene', !x.scene)}${home.scenes.map(s => opt(s.id, s.name, s.id === x.scene)).join('')}</select></div>`
+        : devs.map(d => `<div class="devrow"><span>${esc(d.name)}</span><span class="seg" data-dev="${esc(d.id)}">${['skip', 'on', 'off'].map(v =>
+          `<button data-v="${v}" class="${state(d.id) === v ? 'on' : ''}">${v === 'skip' ? 'Leave' : v === 'on' ? 'On' : 'Off'}</button>`).join('')}</span></div>`).join('')}
+      <label>Turn what it switched on off again</label><select id="aOff">${AUTO_OFF.map(o => opt(o[0], o[0] ? 'After ' + o[1] : o[1], o[0] === x.auto_off)).join('')}</select>
+      <div class="switch-row"><span>On</span><span class="sw ${x.enabled ? 'on' : ''}" id="aOn" role="switch"></span></div>
+      <div class="err" id="aErr"></div>
+      <div class="actions">${a ? '<button class="danger" id="aDel">Delete</button>' : ''}<button id="aCancel">Cancel</button><button class="primary" id="aSave">Save</button></div>`;
+  }
+  function read() {   // the form into x
+    x.name = $('#aName').value.trim();
+    x.when = $('#aWhen').value;
+    if ($('#aTime')) { const [h2, m2] = $('#aTime').value.split(':').map(Number); x.minutes = (h2 || 0) * 60 + (m2 || 0); }
+    if ($('#aOffset')) x.minutes = +$('#aOffset').value;
+    if ($('#aWindow')) { const w = f._wins[+$('#aWindow').value]; x.window_from = w[0]; x.window_to = w[1]; }
+    if ($('#aScene')) x.scene = $('#aScene').value;
+    x.auto_off = +$('#aOff').value;
+  }
+  f.onclick = e => {
+    const b = e.target.closest('button, .sw'); if (!b) return;
+    read();
+    if (b.dataset.day !== undefined) { x.days ^= 1 << +b.dataset.day; draw(); }
+    else if (b.dataset.m) { useScene = b.dataset.m === 'scene'; if (useScene) x.actions = []; else x.scene = ''; draw(); }
+    else if (b.dataset.v) {
+      const id = b.closest('[data-dev]').dataset.dev;
+      x.actions = x.actions.filter(y => y.device !== id);
+      if (b.dataset.v !== 'skip') x.actions.push({ device: id, on: b.dataset.v === 'on' });
+      draw();
+    }
+    else if (b.id === 'aOn') { x.enabled = !x.enabled; draw(); }
+    else if (b.id === 'aCancel') sheet('#autoSheet', false);
+    else if (b.id === 'aDel') {
+      if (!confirm('Delete ' + (x.name || 'this automation') + '?')) return;
+      post('automation-delete?id=' + encodeURIComponent(x.id)).then(() => { sheet('#autoSheet', false); toast('Deleted'); load(); });
+    } else if (b.id === 'aSave') {
+      if (x.when !== 'at' && !['sunrise', 'sunset'].includes(x.when)) x.minutes = 0;
+      if (useScene) x.actions = []; else x.scene = '';
+      post('automation-save', JSON.stringify(x)).then(async r => {
+        if (!r) return;
+        if (r.ok) { sheet('#autoSheet', false); toast('Saved'); load(); }
+        else $('#aErr').textContent = await r.text();
+      });
+    }
+  };
+  f.onchange = e => {
+    if (e.target.id !== 'aWhen') return;
+    read();
+    if (x.when === 'at') x.minutes = 18 * 60;
+    else if (x.when === 'sunrise' || x.when === 'sunset') x.minutes = 0;
+    if (x.when !== 'tv-on' && x.when !== 'tv-off') x.window_from = x.window_to = -1;
+    draw();
+  };
+  draw();
+  sheet('#autoSheet', true);
+}
+load(); setInterval(load, 6000);
+document.addEventListener('visibilitychange', load);
+
+// ---- sheets ----
+function sheet(id, open) {
+  $(id).classList.toggle('open', open);
+  if (id === '#remoteSheet') { clearInterval(sheet.t); if (open) { status(); sheet.t = setInterval(status, 3000); } }
+}
+$('#openRemote').onclick = () => sheet('#remoteSheet', true);
+$('#openLog').onclick = () => {
+  sheet('#logSheet', true);
+  fetch(api + 'activity').then(r => r.json()).then(a => {
+    $('#log').innerHTML = a.slice().reverse().map(l => {
+      const m = l.match(/^(\d{4}-\d\d-\d\d \d\d:\d\d)\s+(.*)$/);
+      return m ? `<div><time>${esc(m[1])}</time>${esc(m[2])}</div>` : `<div>${esc(l)}</div>`;
+    }).join('') || '<p class="empty">Nothing yet.</p>';
+  }).catch(() => {});
+};
+document.querySelectorAll('.sheet').forEach(s => s.addEventListener('click', e => { if (e.target === s) sheet('#' + s.id, false); }));
+
+// ---- the TV remote ----
+function key(code) { buzz(); post('key?c=' + code); }
+document.querySelectorAll('.key').forEach(b => {
+  let timer = null;
+  const stop = () => { clearTimeout(timer); clearInterval(timer); timer = null; b.classList.remove('down'); };
+  b.addEventListener('pointerdown', e => {
+    e.preventDefault(); b.classList.add('down'); key(b.dataset.key);
+    if (b.hasAttribute('data-repeat')) timer = setTimeout(() => { timer = setInterval(() => key(b.dataset.key), 160); }, 450);
+  });
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(t => b.addEventListener(t, stop));
+});
+// touch pad: swipe = arrows (one per 48 px), tap = OK, tap near an edge = that arrow
+const pad = $('#pad'), dot = $('#dot');
+let start = null, last = null, moved = false;
+const place = e => { const r = pad.getBoundingClientRect(); dot.style.left = (e.clientX - r.left) + 'px'; dot.style.top = (e.clientY - r.top) + 'px'; };
+pad.addEventListener('pointerdown', e => { pad.setPointerCapture(e.pointerId); start = last = { x: e.clientX, y: e.clientY }; moved = false; place(e); dot.style.opacity = 1; });
+pad.addEventListener('pointermove', e => {
+  if (!last) return; place(e);
+  const dx = e.clientX - last.x, dy = e.clientY - last.y, step = 48;
+  if (Math.abs(dx) >= step && Math.abs(dx) > Math.abs(dy)) { key(dx > 0 ? 22 : 21); last = { x: e.clientX, y: e.clientY }; moved = true; }
+  else if (Math.abs(dy) >= step) { key(dy > 0 ? 20 : 19); last = { x: e.clientX, y: e.clientY }; moved = true; }
+});
+pad.addEventListener('pointerup', e => {
+  dot.style.opacity = 0; if (!start) return;
+  const dx = e.clientX - start.x, dy = e.clientY - start.y;
+  if (!moved && Math.hypot(dx, dy) < 14) {
+    const r = pad.getBoundingClientRect(), fx = (e.clientX - r.left) / r.width, fy = (e.clientY - r.top) / r.height, edge = .2;
+    key(fy < edge ? 19 : fy > 1 - edge ? 20 : fx < edge ? 21 : fx > 1 - edge ? 22 : 23);
+  } else if (!moved && Math.hypot(dx, dy) >= 24) key(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 22 : 21) : (dy > 0 ? 20 : 19));
+  start = last = null;
+});
+pad.addEventListener('pointercancel', () => { start = last = null; dot.style.opacity = 0; });
+function send() { const t = $('#text').value; if (!t) return; buzz(); post('type', t); $('#text').value = ''; }
+$('#send').onclick = send;
+$('#text').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); send(); } });
+function status() {
+  fetch(api + 'status').then(r => r.json()).then(s => {
+    const [cls, text] = !s.launcher ? ['warn', 'Arrows off'] : !s.awake ? ['warn', 'TV is off'] : ['ok', 'Connected'];
+    $('#rDot').className = 'dot ' + cls; $('#rStatus').textContent = text;
+  }).catch(() => { $('#rDot').className = 'dot bad'; $('#rStatus').textContent = 'Not reachable'; });
+}
+</script>
+</body>
+</html>

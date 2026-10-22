@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-feature android:name="android.software.leanback" android:required="false" />
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+
+    <!-- Local network only: Shelly HTTP, mDNS discovery and RTSP cameras. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+    <!-- Schedules: re-armed after a reboot. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Private DNS back to Automatic and again after a power cut (DnsRescue); granted by install-smarthome.sh. -->
+    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" />
+    <!-- The phone remote's server keeps running while it's on (Settings → Phone remote). -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- Phone remote while the TV is off (Settings, optional): keeps the processor and Wi-Fi awake. -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+
+    <!-- Android 11 package visibility: the TV's input player, for the Inputs tile. -->
+    <queries>
+        <package android:name="com.amazon.tv.inputpreference.service" />
+        <!-- The clean launcher, told the screensaver delay (Settings → Screensaver). -->
+        <package android:name="com.gathin.tvhome" />
+        <!-- The TV's apps, offered on the phone remote. -->
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="tvinput" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="content" android:host="android.media.tv" />
+        </intent>
+    </queries>
+
+    <application
+        android:label="@string/app_name"
+        android:icon="@drawable/app_icon"
+        android:banner="@drawable/banner"
+        android:theme="@style/Theme.SmartHome"
+        android:allowBackup="false"
+        android:networkSecurityConfig="@xml/network">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:configChanges="keyboard|keyboardHidden|navigation|screenSize|orientation|uiMode"
+            android:screenOrientation="landscape">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".DeviceActivity"
+            android:exported="false"
+            android:configChanges="keyboard|keyboardHidden|navigation|screenSize|orientation|uiMode"
+            android:screenOrientation="landscape" />
+
+        <activity
+            android:name=".CameraActivity"
+            android:exported="false"
+            android:configChanges="keyboard|keyboardHidden|navigation|screenSize|orientation|uiMode"
+            android:screenOrientation="landscape" />
+
+        <receiver
+            android:name=".ControlReceiver"
+            android:exported="true"
+            android:permission="android.permission.DUMP">
+            <intent-filter>
+                <action android:name="com.homecontrol.tv.ADD_DEVICE" />
+                <action android:name="com.homecontrol.tv.ADD_SCENE" />
+                <action android:name="com.homecontrol.tv.ADD_SCHEDULE" />
+                <action android:name="com.homecontrol.tv.SET_LOCATION" />
+                <action android:name="com.homecontrol.tv.ADD_CAMERA" />
+                <action android:name="com.homecontrol.tv.SET_ENABLED" />
+                <action android:name="com.homecontrol.tv.RENAME" />
+                <action android:name="com.homecontrol.tv.ADD_ROOM" />
+                <action android:name="com.homecontrol.tv.SET_ROOM" />
+                <action android:name="com.homecontrol.tv.SET_FAVORITE" />
+                <action android:name="com.homecontrol.tv.SET_HOST" />
+                <action android:name="com.homecontrol.tv.REMOVE" />
+                <action android:name="com.homecontrol.tv.RESET" />
+                <action android:name="com.homecontrol.tv.CLEAR_ACTIVITY" />
+                <action android:name="com.homecontrol.tv.BACKUP" />
+                <action android:name="com.homecontrol.tv.RESTORE" />
+                <action android:name="com.homecontrol.tv.REMOTE_LINK" />
+                <action android:name="com.homecontrol.tv.REMOTE_AWAKE" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Schedules: the alarm itself, and re-arming after boot, update and clock changes. Exported so the
+             system broadcasts reach it; a stray FIRE only runs what is due anyway. -->
+        <receiver
+            android:name=".Scheduler"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+        </receiver>
+        <!-- The screensaver clock. The clean launcher opens it after the idle time set in Settings. -->
+        <activity
+            android:name=".ClockActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:launchMode="singleInstance"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
+        <!-- The phone remote: a web page on port 8765 for phones on the Wi-Fi (see Remote). -->
+        <service
+            android:name=".RemoteService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Serves the TV remote web page to phones on the home network" />
+        </service>
+    </application>
+</manifest>
