@@ -18,7 +18,7 @@ public class RemoteService extends Service {
     private RemoteServer server;
     private android.os.PowerManager.WakeLock cpu;
     private android.net.wifi.WifiManager.WifiLock wifi;
-    private javax.jmdns.JmDNS mdns;
+    private javax.jmdns.JmDNS mdns, mdns6;
     private android.net.wifi.WifiManager.MulticastLock lock;
 
     static void start(Context c) {
@@ -59,10 +59,27 @@ public class RemoteService extends Service {
                 if (Remote.hasHttps(this)) {
                     mdns.registerService(javax.jmdns.ServiceInfo.create("_https._tcp.local.", "Smart Home", Remote.HTTPS_PORT, "path=/"));
                 }
+                // Phones ask for the IPv6 address too and wait ~5 s for an answer that never comes: give them one,
+                // the TV's link-local address (stable on this network).
+                java.net.InetAddress v6 = linkLocal(java.net.InetAddress.getByName(ip));
+                if (v6 != null) mdns6 = javax.jmdns.JmDNS.create(v6, Remote.HOST);
             } catch (java.io.IOException | RuntimeException e) {
                 Remote.get(this).lastError = Remote.HOST + ".local: " + e.getMessage();
             }
         }, "remote-mdns").start();
+    }
+
+    /** The IPv6 link-local address on the same network interface as v4, or null. */
+    private static java.net.InetAddress linkLocal(java.net.InetAddress v4) {
+        try {
+            java.net.NetworkInterface ni = java.net.NetworkInterface.getByInetAddress(v4);
+            if (ni == null) return null;
+            for (java.net.InetAddress a : java.util.Collections.list(ni.getInetAddresses())) {
+                if (a instanceof java.net.Inet6Address && a.isLinkLocalAddress()) return a;
+            }
+        } catch (java.net.SocketException ignored) {
+        }
+        return null;
     }
 
     @Override
@@ -100,13 +117,14 @@ public class RemoteService extends Service {
     public void onDestroy() {
         awake(false);
         server.stop();
-        javax.jmdns.JmDNS m = mdns;
-        if (m != null) new Thread(() -> {
-            try {
-                m.close();
-            } catch (java.io.IOException ignored) {
-            }
-        }).start();
+        for (javax.jmdns.JmDNS m : new javax.jmdns.JmDNS[]{mdns, mdns6}) {
+            if (m != null) new Thread(() -> {
+                try {
+                    m.close();
+                } catch (java.io.IOException ignored) {
+                }
+            }).start();
+        }
         if (lock != null) lock.release();
         super.onDestroy();
     }
