@@ -39,8 +39,9 @@ Fire OS lets no ordinary app press keys, so the remote's arrows, OK, Back, Home 
 remote service (the one Amazon's Fire TV phone app uses, on port 8080), and work in
 every app, Netflix included. Smart Home pairs with it by itself the first time: a PIN flashes up on the TV and the
 launcher reads it. Typing goes into the text field on screen through Fire OS's keyboard (so web apps like Spotify
-see it), or presses the keys of an app's own on-screen keyboard (Prime Video); Enter submits. Netflix and YouTube
-draw keyboards nothing can read, so type there with the arrows. Play/pause and volume go straight to what's playing.
+see it), or presses the keys of an app's own on-screen keyboard (Prime Video); in YouTube's search it walks the arrows
+over its keyboard (letters, space, - and '; about a second a letter). Enter submits. Netflix draws a keyboard
+nothing can read, so type there with the arrows. Play/pause and volume go straight to what's playing.
 
 ## Setup
 

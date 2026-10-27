@@ -259,7 +259,18 @@ public class FireHomeWatcher extends AccessibilityService {
             new Handler(Looper.getMainLooper()).postDelayed(this::imeEnter, 900);
             return;
         }
+        if (inYouTube()) {   // its keyboard's SEARCH if we just typed there, else OK
+            toSmartHome(new Intent("com.homecontrol.tv.TYPE").putExtra("youtube", "search"));
+            return;
+        }
         if (!imeEnter()) select(false);
+    }
+
+    private static final String YOUTUBE = "com.amazon.firetv.youtube";
+
+    private boolean inYouTube() {
+        AccessibilityNodeInfo r = getRootInActiveWindow();
+        return r != null && YOUTUBE.contentEquals(r.getPackageName());
     }
 
     private boolean imeEnter() {
@@ -273,6 +284,10 @@ public class FireHomeWatcher extends AccessibilityService {
         AccessibilityNodeInfo f = field();
         if (f == null && keyboardKeys() != null) {   // the app's own keyboard on screen (Prime Video): press its keys
             pressKeys(text, 0);
+            return;
+        }
+        if (f == null && inYouTube()) {   // YouTube's keyboard can't be read: Smart Home walks the arrows over its keys
+            toSmartHome(new Intent("com.homecontrol.tv.TYPE").putExtra("text", text).putExtra("youtube", "type"));
             return;
         }
         if (f == null) {   // neither: Fire OS's remote service types (it reaches Fire OS's own keyboard, if it's open)
@@ -335,6 +350,10 @@ public class FireHomeWatcher extends AccessibilityService {
 
     private void deleteOne() {
         AccessibilityNodeInfo f = field();
+        if (f == null && inYouTube()) {
+            toSmartHome(new Intent("com.homecontrol.tv.TYPE").putExtra("youtube", "backspace"));
+            return;
+        }
         if (f == null) {   // an app's own keyboard: its backspace key
             Map<String, AccessibilityNodeInfo> keys = keyboardKeys();
             AccessibilityNodeInfo back = keys == null ? null : keys.containsKey("backspace") ? keys.get("backspace") : keys.get("delete");
