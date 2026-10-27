@@ -134,8 +134,17 @@ final class Remote {
         return hasHttps(c) ? "https://" + HOST + ".local:" + HTTPS_PORT : "http://" + HOST + ".local:" + PORT;
     }
 
+    /**
+     * The https address by the TV's own address, which the certificate also names: phones open it at once, where a
+     * .local name waits ~5 s for an IPv6 answer. Falls back to the name when there's no address.
+     */
+    static String httpsByAddress() {
+        String ip = address();
+        return "https://" + (ip != null ? ip : HOST + ".local") + ":" + HTTPS_PORT;
+    }
+
     static String url(Context c) {
-        if (hasHttps(c)) return shortUrl(c) + "/r/" + token(c);   // the certificate names smart-home.local
+        if (hasHttps(c)) return httpsByAddress() + "/r/" + token(c);
         String ip = address();
         return "http://" + (ip == null ? "<TV address>" : ip) + ":" + PORT + "/r/" + token(c);
     }

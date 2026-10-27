@@ -59,10 +59,8 @@ public class RemoteService extends Service {
                 if (Remote.hasHttps(this)) {
                     mdns.registerService(javax.jmdns.ServiceInfo.create("_https._tcp.local.", "Smart Home", Remote.HTTPS_PORT, "path=/"));
                 }
-                // Phones ask for the IPv6 address too and wait ~5 s for an answer that never comes: give them one,
-                // the TV's link-local address (stable on this network).
-                java.net.InetAddress v6 = linkLocal(java.net.InetAddress.getByName(ip));
-                if (v6 != null) mdns6 = javax.jmdns.JmDNS.create(v6, Remote.HOST);
+                // Not the IPv6 (link-local) address as well: phone browsers can't connect to it, and stopped opening the
+                // page at all. Without it a .local lookup waits ~5 s for IPv6, so the page links use the TV's address.
             } catch (java.io.IOException | RuntimeException e) {
                 Remote.get(this).lastError = Remote.HOST + ".local: " + e.getMessage();
             }

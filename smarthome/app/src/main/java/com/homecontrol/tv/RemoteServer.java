@@ -144,7 +144,7 @@ final class RemoteServer {
         }
         // The page itself moves to https once there's a certificate; the API stays on http for the voice stick.
         if (!tls && Remote.hasHttps(app) && method.equals("GET") && (path.equals("/") || path.startsWith("/r/"))) {
-            String to = "https://" + Remote.HOST + ".local:" + Remote.HTTPS_PORT + target;
+            String to = Remote.httpsByAddress() + target;
             out.write(("HTTP/1.1 302 Found\r\nLocation: " + to + "\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")
                     .getBytes(StandardCharsets.UTF_8));
             out.flush();
@@ -330,7 +330,7 @@ final class RemoteServer {
 
     /** Plain http: how a phone trusts the home certificate once, so https://smart-home.local opens without warnings. */
     private String setupPage() {
-        String https = "https://" + Remote.HOST + ".local:" + Remote.HTTPS_PORT;
+        String https = Remote.httpsByAddress();
         if (!Remote.hasHttps(app)) {
             return "<meta name=viewport content='width=device-width'><body style='font:17px system-ui;background:#000;color:#ddd;padding:24px'>"
                     + "HTTPS isn't set up on this TV yet (run ./https-setup.sh on the computer). Use http://"
