@@ -21,7 +21,9 @@ import android.view.accessibility.AccessibilityWindowInfo;
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Fire OS keeps Home for Amazon's launcher: com.amazon.tv.launcher is protected, cannot be disabled, and
@@ -251,26 +253,94 @@ public class FireHomeWatcher extends AccessibilityService {
 
     /** Enter: submits the field being typed in (a search, a link), else selects like OK. */
     private void enter() {
+        if (keyboardOpen()) {   // Fire OS's keyboard: its Next (the remote's play/pause there), through the remote service;
+            // some pages (Google in Silk) only close the keyboard on that, so then submit the field as well
+            toSmartHome(new Intent("com.homecontrol.tv.TYPE").putExtra("submit", true));
+            new Handler(Looper.getMainLooper()).postDelayed(this::imeEnter, 900);
+            return;
+        }
+        if (!imeEnter()) select(false);
+    }
+
+    private boolean imeEnter() {
         AccessibilityNodeInfo f = focused();
-        if (f != null && f.isEditable() && android.os.Build.VERSION.SDK_INT >= 30
-                && f.performAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_IME_ENTER.getId())) return;
-        select(false);
+        return f != null && f.isEditable() && android.os.Build.VERSION.SDK_INT >= 30
+                && f.performAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_IME_ENTER.getId());
     }
 
     private void type(String text) {
         if (text == null) return;
         AccessibilityNodeInfo f = field();
-        if (f == null) {   // no text field (Netflix, Prime Video draw their own keyboard): Fire OS's remote service types
-            sendBroadcast(new Intent("com.homecontrol.tv.TYPE").setComponent(new ComponentName("com.homecontrol.tv",
-                    "com.homecontrol.tv.PinReceiver")).putExtra("text", text));
+        if (f == null && keyboardKeys() != null) {   // the app's own keyboard on screen (Prime Video): press its keys
+            pressKeys(text, 0);
             return;
         }
+        if (f == null) {   // neither: Fire OS's remote service types (it reaches Fire OS's own keyboard, if it's open)
+            toSmartHome(new Intent("com.homecontrol.tv.TYPE").putExtra("text", text));
+            return;
+        }
+        // A text field: set it at once, then open Fire OS's keyboard on it and type the same through the remote
+        // service, which apps see as real typing (web apps like Spotify ignore text that's only set).
         CharSequence now = f.getText();
-        setText(f, (now == null || f.isShowingHintText() ? "" : now.toString()) + text);
+        String all = (now == null || f.isShowingHintText() ? "" : now.toString()) + text;
+        setText(f, all);
+        // (a real OK opens the keyboard on the field; an accessibility click doesn't, in a web app)
+        if (!f.isFocused()) f.performAction(AccessibilityNodeInfo.ACTION_FOCUS);
+        toSmartHome(new Intent("com.homecontrol.tv.TYPE").putExtra("text", all).putExtra("open", !keyboardOpen()));
+    }
+
+    /** Fire OS's on-screen keyboard is up. */
+    private boolean keyboardOpen() {
+        for (AccessibilityWindowInfo w : getWindows()) if (w.getType() == AccessibilityWindowInfo.TYPE_INPUT_METHOD) return true;
+        return false;
+    }
+
+    private void toSmartHome(Intent i) {
+        sendBroadcast(i.setComponent(new ComponentName("com.homecontrol.tv", "com.homecontrol.tv.PinReceiver")));
+    }
+
+    /**
+     * An app's own on-screen keyboard, by key label (lower case; "space", "backspace"): its clickable one-letter keys.
+     * Null unless there's a whole alphabet on screen.
+     */
+    private Map<String, AccessibilityNodeInfo> keyboardKeys() {
+        Map<String, AccessibilityNodeInfo> keys = new HashMap<>();
+        collectKeys(getRootInActiveWindow(), keys);
+        for (char ch = 'a'; ch <= 'z'; ch++) if (!keys.containsKey(String.valueOf(ch))) return null;
+        return keys;
+    }
+
+    private static void collectKeys(AccessibilityNodeInfo n, Map<String, AccessibilityNodeInfo> keys) {
+        if (n == null || !n.isVisibleToUser()) return;
+        if (n.isClickable()) {
+            CharSequence label = n.getText() != null && n.getText().length() > 0 ? n.getText() : n.getContentDescription();
+            if (label != null) {
+                String k = label.toString().trim().toLowerCase(java.util.Locale.ROOT);
+                if (k.length() == 1 || k.equals("space") || k.equals("backspace") || k.equals("delete")) keys.putIfAbsent(k, n);
+            }
+        }
+        for (int i = 0; i < n.getChildCount(); i++) collectKeys(n.getChild(i), keys);
+    }
+
+    /** Presses the on-screen key for each character, a beat apart so the app keeps up; skips ones it hasn't got. */
+    private void pressKeys(String text, int at) {
+        if (at >= text.length()) return;
+        Map<String, AccessibilityNodeInfo> keys = keyboardKeys();
+        if (keys == null) return;
+        char ch = text.charAt(at);
+        AccessibilityNodeInfo key = keys.get(ch == ' ' ? "space" : String.valueOf(Character.toLowerCase(ch)));
+        if (key != null) key.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+        new Handler(Looper.getMainLooper()).postDelayed(() -> pressKeys(text, at + 1), 120);
     }
 
     private void deleteOne() {
         AccessibilityNodeInfo f = field();
+        if (f == null) {   // an app's own keyboard: its backspace key
+            Map<String, AccessibilityNodeInfo> keys = keyboardKeys();
+            AccessibilityNodeInfo back = keys == null ? null : keys.containsKey("backspace") ? keys.get("backspace") : keys.get("delete");
+            if (back != null) back.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+            return;
+        }
         if (f == null || f.getText() == null || f.isShowingHintText()) return;
         String t = f.getText().toString();
         if (!t.isEmpty()) setText(f, t.substring(0, t.length() - 1));

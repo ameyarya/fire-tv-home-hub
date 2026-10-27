@@ -66,13 +66,22 @@ final class AmazonRemote {
         return send(c, "FireTV?action=" + action, null);
     }
 
-    /** Types into what's on screen, the way the Fire TV phone app's keyboard does (apps with their own keyboards). */
-    static boolean type(Context c, String text) {
+    /** Sets the text in Fire OS's on-screen keyboard (only while it's open), the way the Fire TV phone app does. */
+    static boolean type(Context c, String text, boolean open) {
+        if (open) {   // OK on the focused field brings up the keyboard
+            if (!key(c, KeyEvent.KEYCODE_DPAD_CENTER)) return false;
+            SystemClock.sleep(900);
+        }
         try {
             return send(c, "FireTV/keyboard", new org.json.JSONObject().put("text", text).toString());
         } catch (org.json.JSONException e) {
             return false;
         }
+    }
+
+    /** The keyboard's Next: the remote's play/pause, which Fire OS's keyboard takes as "done" (submits a search). */
+    static boolean submit(Context c) {
+        return send(c, "media?action=play", null);
     }
 
     /** POSTs to the service: wakes it if it's asleep, pairs if there's no token yet or it was dropped. */
