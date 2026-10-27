@@ -79,6 +79,7 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="com.homecontrol.tv.PAIR_PIN" />
+                <action android:name="com.homecontrol.tv.TYPE" />
             </intent-filter>
         </receiver>
 

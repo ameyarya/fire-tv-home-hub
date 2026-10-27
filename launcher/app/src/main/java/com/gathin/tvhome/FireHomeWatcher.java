@@ -258,8 +258,13 @@ public class FireHomeWatcher extends AccessibilityService {
     }
 
     private void type(String text) {
+        if (text == null) return;
         AccessibilityNodeInfo f = field();
-        if (f == null || text == null) return;
+        if (f == null) {   // no text field (Netflix, Prime Video draw their own keyboard): Fire OS's remote service types
+            sendBroadcast(new Intent("com.homecontrol.tv.TYPE").setComponent(new ComponentName("com.homecontrol.tv",
+                    "com.homecontrol.tv.PinReceiver")).putExtra("text", text));
+            return;
+        }
         CharSequence now = f.getText();
         setText(f, (now == null || f.isShowingHintText() ? "" : now.toString()) + text);
     }

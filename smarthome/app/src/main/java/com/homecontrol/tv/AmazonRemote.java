@@ -66,6 +66,15 @@ final class AmazonRemote {
         return send(c, "FireTV?action=" + action, null);
     }
 
+    /** Types into what's on screen, the way the Fire TV phone app's keyboard does (apps with their own keyboards). */
+    static boolean type(Context c, String text) {
+        try {
+            return send(c, "FireTV/keyboard", new org.json.JSONObject().put("text", text).toString());
+        } catch (org.json.JSONException e) {
+            return false;
+        }
+    }
+
     /** POSTs to the service: wakes it if it's asleep, pairs if there's no token yet or it was dropped. */
     private static synchronized boolean send(Context c, String path, String body) {
         String token = prefs(c).getString(TOKEN, null);
