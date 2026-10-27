@@ -34,8 +34,7 @@ import java.util.regex.Pattern;
  */
 final class Remote {
 
-    static final int PORT = 8765, HTTPS_PORT = 8443;   // not 8080: that is Fire OS's own remote service (AmazonRemote)
-    static final String HOST = "smart-home";
+    static final int PORT = 8765;
     private static final String PREFS = "remote", ON = "on", TOKEN = "token", CODE = "code", AWAKE = "awake";
 
     /** The keys the page may press: the remote's buttons, plus Enter and Delete for typing. */
@@ -127,7 +126,7 @@ final class Remote {
         return true;
     }
 
-    /** The 4 digits a phone enters once at http://smart-home.local:8765 (shown in Settings → Phone remote). */
+    /** The 4 digits a phone enters once at http://<TV address>:8765 (shown in Settings → Phone remote). */
     static String code(Context c) {
         token(c);
         String code = prefs(c).getString(CODE, null);
@@ -138,49 +137,14 @@ final class Remote {
         return code;
     }
 
-    /** The address to type: the name, without the secret. */
-    static String shortUrl(Context c) {
-        return hasHttps(c) ? "https://" + HOST + ".local:" + HTTPS_PORT : "http://" + HOST + ".local:" + PORT;
-    }
-
-    /**
-     * The https address by the TV's own address, which the certificate also names: phones open it at once, where a
-     * .local name waits ~5 s for an IPv6 answer. Falls back to the name when there's no address.
-     */
-    static String httpsByAddress() {
+    /** The address to type: the TV's, without the secret. */
+    static String shortUrl() {
         String ip = address();
-        return "https://" + (ip != null ? ip : HOST + ".local") + ":" + HTTPS_PORT;
+        return "http://" + (ip == null ? "<TV address>" : ip) + ":" + PORT;
     }
 
     static String url(Context c) {
-        if (hasHttps(c)) return httpsByAddress() + "/r/" + token(c);
-        String ip = address();
-        return "http://" + (ip == null ? "<TV address>" : ip) + ":" + PORT + "/r/" + token(c);
-    }
-
-    // ---- HTTPS ---------------------------------------------------------------------------------------
-    // The certificate comes from the Mac (https-setup.sh): a home certificate authority signs one for
-    // smart-home.local and the TV's address; phones trust that authority once, from /setup. Kept private.
-
-    private static final String P12 = "p12", CA = "ca";
-    static final String P12_PASSWORD = "smart-home";   // only wraps the file in the app's private storage
-
-    static boolean hasHttps(Context c) {
-        return prefs(c).contains(P12);
-    }
-
-    static void setCertificate(Context c, String p12Base64, String caPem) {
-        prefs(c).edit().putString(P12, p12Base64).putString(CA, caPem).apply();
-    }
-
-    static byte[] p12(Context c) {
-        String b = prefs(c).getString(P12, null);
-        return b == null ? null : android.util.Base64.decode(b, android.util.Base64.DEFAULT);
-    }
-
-    /** The home authority, for phones to trust (served at /ca.pem). */
-    static String caPem(Context c) {
-        return prefs(c).getString(CA, "");
+        return shortUrl() + "/r/" + token(c);
     }
 
     /** The TV's address on the home network (Wi-Fi or Ethernet). */

@@ -18,8 +18,6 @@ public class RemoteService extends Service {
     private RemoteServer server;
     private android.os.PowerManager.WakeLock cpu;
     private android.net.wifi.WifiManager.WifiLock wifi;
-    private javax.jmdns.JmDNS mdns, mdns6;
-    private android.net.wifi.WifiManager.MulticastLock lock;
 
     static void start(Context c) {
         if (!Remote.isOn(c)) return;
@@ -41,43 +39,6 @@ public class RemoteService extends Service {
         startForeground(1, n);
         server = new RemoteServer(this);
         server.start();
-        announce();
-    }
-
-    /** "smart-home.local" on the Wi-Fi (mDNS), so phones needn't know the TV's address. */
-    private void announce() {
-        new Thread(() -> {
-            try {
-                android.net.wifi.WifiManager wifi = (android.net.wifi.WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
-                lock = wifi.createMulticastLock("smart-home");
-                lock.setReferenceCounted(false);
-                lock.acquire();
-                String ip = Remote.address();
-                if (ip == null) return;
-                mdns = javax.jmdns.JmDNS.create(java.net.InetAddress.getByName(ip), Remote.HOST);
-                mdns.registerService(javax.jmdns.ServiceInfo.create("_http._tcp.local.", "Smart Home", Remote.PORT, "path=/"));
-                if (Remote.hasHttps(this)) {
-                    mdns.registerService(javax.jmdns.ServiceInfo.create("_https._tcp.local.", "Smart Home", Remote.HTTPS_PORT, "path=/"));
-                }
-                // Not the IPv6 (link-local) address as well: phone browsers can't connect to it, and stopped opening the
-                // page at all. Without it a .local lookup waits ~5 s for IPv6, so the page links use the TV's address.
-            } catch (java.io.IOException | RuntimeException e) {
-                Remote.get(this).lastError = Remote.HOST + ".local: " + e.getMessage();
-            }
-        }, "remote-mdns").start();
-    }
-
-    /** The IPv6 link-local address on the same network interface as v4, or null. */
-    private static java.net.InetAddress linkLocal(java.net.InetAddress v4) {
-        try {
-            java.net.NetworkInterface ni = java.net.NetworkInterface.getByInetAddress(v4);
-            if (ni == null) return null;
-            for (java.net.InetAddress a : java.util.Collections.list(ni.getInetAddresses())) {
-                if (a instanceof java.net.Inet6Address && a.isLinkLocalAddress()) return a;
-            }
-        } catch (java.net.SocketException ignored) {
-        }
-        return null;
     }
 
     @Override
@@ -115,15 +76,6 @@ public class RemoteService extends Service {
     public void onDestroy() {
         awake(false);
         server.stop();
-        for (javax.jmdns.JmDNS m : new javax.jmdns.JmDNS[]{mdns, mdns6}) {
-            if (m != null) new Thread(() -> {
-                try {
-                    m.close();
-                } catch (java.io.IOException ignored) {
-                }
-            }).start();
-        }
-        if (lock != null) lock.release();
         super.onDestroy();
     }
 

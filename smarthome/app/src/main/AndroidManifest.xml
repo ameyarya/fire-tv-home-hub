@@ -106,7 +106,6 @@
                 <action android:name="com.homecontrol.tv.RESTORE" />
                 <action android:name="com.homecontrol.tv.REMOTE_LINK" />
                 <action android:name="com.homecontrol.tv.REMOTE_AWAKE" />
-                <action android:name="com.homecontrol.tv.HTTPS_CERT" />
             </intent-filter>
         </receiver>
 

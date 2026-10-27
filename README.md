@@ -12,7 +12,7 @@ debloat tooling come from **[cleanyourtv](https://github.com/Gathin23/cleanyourt
 |---|---|
 | [`launcher/`](launcher) | **Clean home screen** (from cleanyourtv, adapted to Fire OS 8). Your apps on a shelf, no ads. Fire OS won't hand Home to another launcher, so an accessibility service brings this one back whenever Amazon's home appears (rapid Home presses included). Icon-only Inputs / Wi-Fi / Settings pills plus a Smart Home pill; move tiles anywhere; an All apps drawer; opens the screensaver clock after idle minutes, never while something plays. |
 | [`smarthome/`](smarthome) | **Smart Home** for the TV, in the style of Apple Home: rooms, favourites, scenes, Kasa and Shelly plugs and sensors (found on the Wi-Fi, re-found when they move), RTSP cameras, and automations on a time, sunrise/sunset, or the **TV turning on or off**, with days, time windows and "turn off after". It also: |
-| | - serves the **phone web app** at `http://smart-home.local:8765` (below) |
+| | - serves the **phone web app** at `http://<TV address>:8765` (below) |
 | | - the **screensaver clock**: large clock, date and the weather now and for the next hours (Open-Meteo), dims at night |
 | | - recovers from the **power-cut trap** (clock reset → Private DNS fails → no internet) by itself |
 | [`photos/`](photos) | **Photos** tile: a self-hosted gallery (e.g. [telegram-photo-vault](https://github.com/ameyarya/telegram-photo-vault)) full screen, found on the Wi-Fi, with a remote-driven pointer and ←/→ for previous/next photo. |
@@ -22,7 +22,8 @@ debloat tooling come from **[cleanyourtv](https://github.com/Gathin23/cleanyourt
 
 ## The phone web app
 
-Smart Home runs a small web server on the TV (port 8765), announced as **`smart-home.local`**:
+Smart Home runs a small web server on the TV, at **`http://<TV address>:8765`** (give the TV a fixed address in your
+router so the link stays put):
 
 - **Home**, like the TV app: a summary line, filter pills, scenes, cameras, plugs with live watts, automations.
 - **+** at the top right: add a plug or sensor (find on Wi-Fi, or by address), a camera, a scene, an automation, a room.
@@ -30,18 +31,12 @@ Smart Home runs a small web server on the TV (port 8765), announced as **`smart-
 - **Remote**: touchpad, Back / Home / Play / Menu, volume, power and typing on the TV.
 - **Activity**, behind ☰.
 
-**HTTPS (optional):** run `./https-setup.sh` once. It makes your home's own certificate authority (kept on your
-computer in `~/.config/fire-tv-home-hub`), signs a certificate for `smart-home.local` and hands it to the TV, which
-then serves **`https://smart-home.local:8443`** (and `https://<TV address>:8443`, which the QR code uses: it opens at once, where a `.local` name can take ~5 s to look up; give the TV a fixed address in your router so it stays valid) (plain http on 8765 redirects there; the API stays on http for the
-voice stick). On each phone, open `http://smart-home.local:8765/setup` once to trust the authority. The page has a
-home-screen icon either way.
-
-Pair a phone once: scan the QR code in Smart Home → Settings → Phone remote, or open `http://smart-home.local:8765`
+Pair a phone once: scan the QR code in Smart Home → Settings → Phone remote, or open `http://<TV address>:8765`
 and enter the 4-digit code shown there (change it under Settings → Phone remote → Change code). Optionally (Settings → *Phone remote when the TV is off*) the TV keeps its
 Wi-Fi up while off, so the page works any time, at a few watts.
 
 Fire OS lets no ordinary app press keys, so the remote's arrows, OK, Back, Home and Menu go through Fire OS's own
-remote service (the one Amazon's Fire TV phone app uses, on port 8080; that's why the page is on 8443), and work in
+remote service (the one Amazon's Fire TV phone app uses, on port 8080), and work in
 every app, Netflix included. Smart Home pairs with it by itself the first time: a PIN flashes up on the TV and the
 launcher reads it. Typing, and the keys when that service isn't there, go through the launcher's accessibility
 service; play/pause and volume go straight to what's playing.

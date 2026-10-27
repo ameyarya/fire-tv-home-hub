@@ -24,8 +24,7 @@ import javax.net.ssl.X509TrustManager;
  * Real remote keys through Fire OS's own remote service (com.amazon.tv.turnstile, what Amazon's Fire TV phone app
  * uses): unlike the launcher's accessibility service, these reach apps that draw their own screens, like Netflix.
  *
- * The service starts on demand (a POST to the TV's DIAL server on 8009) and then answers https on 8080, which is
- * why the phone page is on 8443. It wants pairing once: it shows a PIN on the TV, which the launcher's accessibility
+ * The service starts on demand (a POST to the TV's DIAL server on 8009) and then answers https on 8080,. It wants pairing once: it shows a PIN on the TV, which the launcher's accessibility
  * service reads off the screen and hands back (PinReceiver), so pairing needs nobody. Only ever on this TV (127.0.0.1).
  */
 final class AmazonRemote {

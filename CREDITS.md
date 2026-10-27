@@ -47,4 +47,4 @@ SOFTWARE.
 - **Outfit** font: SIL Open Font License 1.1 (`launcher/FONT-LICENSE-OFL.txt`).
 - **Open-Meteo** for the screensaver's weather (free, no key).
 - **M5Unified / M5GFX** (M5Stack) and **ESP-SR** (Espressif) for the voice stick, fetched at build time.
-- **ZXing core** (QR codes) and **JmDNS** (`smart-home.local`), Apache 2.0, fetched by Gradle.
+- **ZXing core** (QR codes), Apache 2.0, fetched by Gradle.
