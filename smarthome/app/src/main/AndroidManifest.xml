@@ -86,6 +86,7 @@
                 <action android:name="com.homecontrol.tv.ADD_CAMERA" />
                 <action android:name="com.homecontrol.tv.SET_ENABLED" />
                 <action android:name="com.homecontrol.tv.RENAME" />
+                <action android:name="com.homecontrol.tv.REMOTE_CODE" />
                 <action android:name="com.homecontrol.tv.ADD_ROOM" />
                 <action android:name="com.homecontrol.tv.SET_ROOM" />
                 <action android:name="com.homecontrol.tv.SET_FAVORITE" />

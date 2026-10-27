@@ -285,7 +285,7 @@ function render() {
       d.tempC !== undefined ? Math.round(d.tempC) + '°' + (d.humidity !== undefined ? ' · ' + Math.round(d.humidity) + '%' : '') : '';
     return tile((d.on ? 'on ' : '') + (d.online ? '' : 'offline'), d.switch ? 'i-plug' : 'i-sensor',
       d.switch && d.online ? (d.on ? 'ON' : 'OFF') : '', d.name, state,
-      d.switch ? `data-dev="${esc(d.id)}" data-on="${d.on ? 1 : 0}"` : 'data-none="1"', 'device', d.id);
+      d.switch ? `data-dev="${esc(d.id)}" data-on="${d.on ? 1 : 0}"` : `data-none="1" data-devid="${esc(d.id)}"`, 'device', d.id);
   });
   const autos = h.automations.map(a => tile('auto ' + (a.enabled ? 'on' : 'off'), 'i-clock', a.enabled ? 'ON' : 'OFF', a.name,
     a.describe + (a.enabled && a.next ? ' · next ' + a.next : ''), `data-auto="${esc(a.id)}"`, 'automation', a.id));
@@ -314,7 +314,7 @@ $('#editBtn').onclick = () => {
   editing = !editing;
   document.body.classList.toggle('editing', editing);
   $('#editBtn').classList.toggle('on', editing);
-  toast(editing ? 'Arrows move tiles and sections; tap a scene to edit it. Tap ✎ again when done.' : 'Done');
+  toast(editing ? 'Arrows move tiles and sections; tap a tile to rename or edit it. Tap ✎ again when done.' : 'Done');
 };
 if (location.hash === '#edit') $('#editBtn').click();   // open straight into edit mode
 if (location.hash === '#add') setTimeout(addMenu, 0);   // or straight into + Add
@@ -328,9 +328,12 @@ $('#sections').addEventListener('click', e => {
     });
     return;
   }
-  const t = e.target.closest('.tile'); if (!t || t.dataset.none) return;
-  if (editing) {   // edit mode: arrows move; a scene opens its editor
+  const t = e.target.closest('.tile'); if (!t || (t.dataset.none && !editing)) return;
+  if (editing) {   // edit mode: arrows move; a scene or automation opens its editor; a plug or camera renames
     if (t.dataset.scene) editScene(home.scenes.find(x => x.id === t.dataset.scene));
+    else if (t.dataset.auto) editAuto(home.automations.find(a => a.id === t.dataset.auto));
+    else if (t.dataset.cam) rename('camera', t.dataset.cam, t.querySelector('.name').textContent);
+    else if (t.dataset.dev || t.dataset.devid) rename('device', t.dataset.dev || t.dataset.devid, t.querySelector('.name').textContent);
     return;
   }
   buzz();
@@ -386,6 +389,14 @@ function addMenu() {
   sheet('#addSheet', true);
 }
 $('#addBtn').onclick = addMenu;
+function rename(kind, id, name) {   // a small form in the + Add sheet
+  addForm.innerHTML = `<div class="grab"></div><div class="panel-head"><b>Rename</b></div>
+    <label>Name</label><input type="text" id="newName" value="${esc(name)}" maxlength="40">
+    <div class="err" id="addErr"></div><div class="actions"><button id="cancelAdd">Cancel</button><button class="primary" id="renameSave"
+      data-kind="${kind}" data-id="${esc(id)}">Save</button></div>`;
+  sheet('#addSheet', true);
+  setTimeout(() => { const i = $('#newName'); i.focus(); i.select(); }, 50);
+}
 function done(msg) { sheet('#addSheet', false); toast(msg); load(); }
 async function fail(r) { const e = $('#addErr'); if (e) e.textContent = r ? await r.text() : 'The TV isn\u2019t answering'; }
 addForm.addEventListener('click', async e => {
@@ -426,6 +437,9 @@ addForm.addEventListener('click', async e => {
   } else if (b.id === 'roomSave') {
     const r = await post('room-add', $('#rName').value);
     if (r && r.ok) done('Room added'); else fail(r);
+  } else if (b.id === 'renameSave') {
+    const r = await post(`rename?kind=${b.dataset.kind}&id=${encodeURIComponent(b.dataset.id)}`, $('#newName').value);
+    if (r && r.ok) done('Renamed'); else fail(r);
   } else if (b.id === 'cancelAdd') sheet('#addSheet', false);
 });
 

@@ -419,6 +419,29 @@ final class HomeApi {
         }
     }
 
+    /** Renames a plug, sensor, camera or scene from the phone; null when done, else what's wrong. */
+    static String rename(Context c, String kind, String id, String name) {
+        String n = name == null ? "" : name.trim();
+        if (n.isEmpty()) return "Give it a name";
+        if (n.length() > 40) return "That name is too long";
+        return onMain(() -> {
+            Home h = Storage.get(c);
+            String old = null;
+            if ("device".equals(kind)) {
+                Home.Device d = h.device(id);
+                if (d != null) { old = d.name; d.name = n; }
+            } else if ("camera".equals(kind)) {
+                for (Home.Camera x : h.cameras) if (x.id.equals(id)) { old = x.name; x.name = n; }
+            } else if ("scene".equals(kind)) {
+                for (Home.Scene x : h.scenes) if (x.id.equals(id)) { old = x.name; x.name = n; }
+            }
+            if (old == null) return "It isn't there any more";
+            Storage.save(c);
+            ActivityLog.add(c, old + " renamed to " + n + " from a phone");
+            return null;
+        });
+    }
+
     static String addRoom(Context c, String name) {
         String n = name.trim();
         if (n.isEmpty()) return "Give it a name";

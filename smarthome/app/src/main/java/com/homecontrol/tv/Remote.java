@@ -107,15 +107,24 @@ final class Remote {
         return t;
     }
 
-    /** A new secret: links shown before stop working. */
+    /** A new secret: links shown before stop working. The code stays (a random one the first time). */
     static String newToken(Context c) {
         String abc = "abcdefghijkmnpqrstuvwxyz23456789";
         SecureRandom r = new SecureRandom();
         StringBuilder b = new StringBuilder();
         for (int i = 0; i < 10; i++) b.append(abc.charAt(r.nextInt(abc.length())));
-        String code = String.format(java.util.Locale.US, "%04d", r.nextInt(10000));
+        String code = prefs(c).getString(CODE, null);
+        if (code == null) code = String.format(java.util.Locale.US, "%04d", r.nextInt(10000));
         prefs(c).edit().putString(TOKEN, b.toString()).putString(CODE, code).apply();
         return b.toString();
+    }
+
+    /** Sets the 4-digit code (Settings → Phone remote → Change code); false unless it's 4 digits. */
+    static boolean setCode(Context c, String code) {
+        if (code == null || !code.trim().matches("\\d{4}")) return false;
+        token(c);
+        prefs(c).edit().putString(CODE, code.trim()).apply();
+        return true;
     }
 
     /** The 4 digits a phone enters once at http://smart-home.local:8765 (shown in Settings → Phone remote). */

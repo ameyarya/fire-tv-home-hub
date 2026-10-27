@@ -527,9 +527,14 @@ final class Editors {
                 + Remote.shortUrl(a) + "\nand enter the code " + Remote.code(a) + ".\n\nThen Share → Add to Home Screen to keep it."
                 + (Remote.hasHttps(a) ? "\n\nFirst time on a phone: open http://" + Remote.HOST + ".local:" + Remote.PORT
                         + "/setup to trust the home certificate." : ""),
-                Arrays.asList("New link (old ones stop working)", "Turn off"), i -> {
+                Arrays.asList("Change code", "New link (old ones stop working)", "Turn off"), i -> {
                     if (i == 0) {
-                        Remote.newToken(a);   // a new code too
+                        p.askText("Change code", Remote.code(a), "4 digits", n -> {
+                            if (!Remote.setCode(a, n)) p.say("The code is 4 digits");
+                            phoneRemote();
+                        });
+                    } else if (i == 1) {
+                        Remote.newToken(a);
                         phoneRemote();
                     } else {
                         Remote.setOn(a, false);

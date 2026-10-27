@@ -26,7 +26,7 @@ Smart Home runs a small web server on the TV (port 8765), announced as **`smart-
 
 - **Home**, like the TV app: a summary line, filter pills, scenes, cameras, plugs with live watts, automations.
 - **+** at the top right: add a plug or sensor (find on Wi-Fi, or by address), a camera, a scene, an automation, a room.
-- **✎**: move tiles and whole sections; the order is shared with the TV. Tap an automation (or a scene in ✎ mode) to edit it.
+- **✎**: move tiles and whole sections; the order is shared with the TV. In ✎ mode, tap a plug, sensor or camera to rename it, or a scene or automation to edit it.
 - **Remote**: touchpad, Back / Home / Play / Menu, volume, power and typing on the TV.
 - **Activity**, behind ☰.
 
@@ -37,7 +37,7 @@ voice stick). On each phone, open `http://smart-home.local:8765/setup` once to t
 home-screen icon either way.
 
 Pair a phone once: scan the QR code in Smart Home → Settings → Phone remote, or open `http://smart-home.local:8765`
-and enter the 4-digit code shown there. Optionally (Settings → *Phone remote when the TV is off*) the TV keeps its
+and enter the 4-digit code shown there (change it under Settings → Phone remote → Change code). Optionally (Settings → *Phone remote when the TV is off*) the TV keeps its
 Wi-Fi up while off, so the page works any time, at a few watts.
 
 Fire OS lets no ordinary app press keys, so the remote's arrows, OK, Back, Home and typing go through the launcher's

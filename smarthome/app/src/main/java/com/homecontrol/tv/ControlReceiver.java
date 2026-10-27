@@ -27,6 +27,7 @@ import java.io.IOException;
  *   ... -a com.homecontrol.tv.RESET
  *   ... -a com.homecontrol.tv.CLEAR_ACTIVITY                 (home.sh clear-activity)
  *   ... -a com.homecontrol.tv.HTTPS_CERT             (https-setup.sh: the phone page's certificate)
+ *   ... -a com.homecontrol.tv.REMOTE_CODE --es code 1234   (the phone remote's 4-digit code)
  *   ... -a com.homecontrol.tv.REMOTE_LINK            (the phone remote's secret: setup for the voice stick)
  *   ... -a com.homecontrol.tv.BACKUP / RESTORE      (UI tests: keep the owner's setup on the TV meanwhile)
  */
@@ -54,6 +55,10 @@ public class ControlReceiver extends BroadcastReceiver {
             Remote.setKeepAwake(ctx, intent.getBooleanExtra("on", false));
             setResultData("{\"awake\":" + Remote.keepAwake(ctx) + "}");
             setResultCode(1);
+            return;
+        }
+        if (action.equals(Commands.P + "REMOTE_CODE")) {
+            setResultCode(Remote.setCode(ctx, intent.getStringExtra("code")) ? 1 : 0);
             return;
         }
         if (action.equals(Commands.P + "REMOTE_LINK")) {   // the phone remote's secret, for the voice stick's setup
