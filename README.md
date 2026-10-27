@@ -32,7 +32,7 @@ Smart Home runs a small web server on the TV (port 8765), announced as **`smart-
 
 **HTTPS (optional):** run `./https-setup.sh` once. It makes your home's own certificate authority (kept on your
 computer in `~/.config/fire-tv-home-hub`), signs a certificate for `smart-home.local` and hands it to the TV, which
-then serves **`https://smart-home.local:8080`** (and `https://<TV address>:8080`, which the QR code uses: it opens at once, where a `.local` name can take ~5 s to look up; give the TV a fixed address in your router so it stays valid) (plain http on 8765 redirects there; the API stays on http for the
+then serves **`https://smart-home.local:8443`** (and `https://<TV address>:8443`, which the QR code uses: it opens at once, where a `.local` name can take ~5 s to look up; give the TV a fixed address in your router so it stays valid) (plain http on 8765 redirects there; the API stays on http for the
 voice stick). On each phone, open `http://smart-home.local:8765/setup` once to trust the authority. The page has a
 home-screen icon either way.
 
@@ -40,9 +40,11 @@ Pair a phone once: scan the QR code in Smart Home → Settings → Phone remote,
 and enter the 4-digit code shown there (change it under Settings → Phone remote → Change code). Optionally (Settings → *Phone remote when the TV is off*) the TV keeps its
 Wi-Fi up while off, so the page works any time, at a few watts.
 
-Fire OS lets no ordinary app press keys, so the remote's arrows, OK, Back, Home and typing go through the launcher's
-accessibility service; play/pause and volume go straight to what's playing. Apps that draw their own screens may
-not follow the arrows.
+Fire OS lets no ordinary app press keys, so the remote's arrows, OK, Back, Home and Menu go through Fire OS's own
+remote service (the one Amazon's Fire TV phone app uses, on port 8080; that's why the page is on 8443), and work in
+every app, Netflix included. Smart Home pairs with it by itself the first time: a PIN flashes up on the TV and the
+launcher reads it. Typing, and the keys when that service isn't there, go through the launcher's accessibility
+service; play/pause and volume go straight to what's playing.
 
 ## Setup
 

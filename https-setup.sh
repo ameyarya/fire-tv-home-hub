@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# HTTPS for the phone page: https://smart-home.local:8080 with no browser warnings.
+# HTTPS for the phone page: https://smart-home.local:8443 with no browser warnings.
 #
 # Makes your home's own certificate authority (once; kept on this computer in ~/.config/fire-tv-home-hub, private),
 # signs a certificate for smart-home.local and the TV's address with it, and hands that to Smart Home on the TV.
@@ -35,4 +35,4 @@ adb connect "$TV" >/dev/null
 out=$(adb -s "$TV" shell am broadcast -a com.homecontrol.tv.HTTPS_CERT -n com.homecontrol.tv/.ControlReceiver --es p12 "$P12" --es ca "$CA")
 case "$out" in *'"https":true'*) ;; *) echo "Smart Home didn't take the certificate: $out" >&2; exit 1 ;; esac
 rm -f server.csr server.ext
-echo "Done. On each phone, open http://smart-home.local:8765/setup once, then use https://smart-home.local:8080"
+echo "Done. On each phone, open http://smart-home.local:8765/setup once, then use https://smart-home.local:8443"

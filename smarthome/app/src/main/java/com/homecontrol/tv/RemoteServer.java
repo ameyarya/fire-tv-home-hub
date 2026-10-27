@@ -39,7 +39,7 @@ final class RemoteServer {
         remote = Remote.get(app);
     }
 
-    /** http on 8765 (the page redirects to https once there's a certificate; the API stays, for the voice stick), https on 8080. */
+    /** http on 8765 (the page redirects to https once there's a certificate; the API stays, for the voice stick), https on 8443. */
     synchronized void start() {
         if (server == null) {
             try {

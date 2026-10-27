@@ -34,7 +34,7 @@ import java.util.regex.Pattern;
  */
 final class Remote {
 
-    static final int PORT = 8765, HTTPS_PORT = 8080;
+    static final int PORT = 8765, HTTPS_PORT = 8443;   // not 8080: that is Fire OS's own remote service (AmazonRemote)
     static final String HOST = "smart-home";
     private static final String PREFS = "remote", ON = "on", TOKEN = "token", CODE = "code", AWAKE = "awake";
 
@@ -230,8 +230,8 @@ final class Remote {
             case KeyEvent.KEYCODE_WAKEUP:
                 wake(app);
                 return;
-            default:
-                toLauncher("key", code);
+            default:   // real keys through Fire OS's remote service (they reach Netflix too); else the launcher
+                if (!AmazonRemote.key(app, code)) toLauncher("key", code);
         }
     }
 

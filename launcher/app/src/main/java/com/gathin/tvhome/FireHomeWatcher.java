@@ -16,9 +16,12 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
+import android.view.accessibility.AccessibilityWindowInfo;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Fire OS keeps Home for Amazon's launcher: com.amazon.tv.launcher is protected, cannot be disabled, and
@@ -111,6 +114,7 @@ public class FireHomeWatcher extends AccessibilityService {
             poke();
             if (i.hasExtra("key")) remoteKey(i.getIntExtra("key", 0));
             if (i.hasExtra("text")) type(i.getStringExtra("text"));
+            if (i.getBooleanExtra("readPin", false)) readPin(SystemClock.uptimeMillis() + 6000);
             String open = i.getStringExtra("open");
             if (open != null && open.matches("(?i)https?://\\S+")) {
                 Intent v = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(open))
@@ -137,6 +141,25 @@ public class FireHomeWatcher extends AccessibilityService {
         }
     };
 
+    /**
+     * Smart Home pairing with Fire OS's remote service, which shows a PIN on the TV: read it off the screen and
+     * hand it back, so nobody has to type it. Looks for a few seconds, only when Smart Home asks.
+     */
+    private void readPin(long until) {
+        for (AccessibilityWindowInfo w : getWindows()) {
+            AccessibilityNodeInfo r = w.getRoot();
+            if (r == null) continue;
+            for (AccessibilityNodeInfo n : r.findAccessibilityNodeInfosByViewId("com.amazon.tv.turnstile:id/pinDisplay")) {
+                CharSequence pin = n.getText();
+                if (pin == null) continue;
+                sendBroadcast(new Intent("com.homecontrol.tv.PAIR_PIN").setComponent(new ComponentName("com.homecontrol.tv",
+                        "com.homecontrol.tv.PinReceiver")).putExtra("pin", pin.toString().trim()));
+                return;
+            }
+        }
+        if (SystemClock.uptimeMillis() < until) new Handler(Looper.getMainLooper()).postDelayed(() -> readPin(until), 250);
+    }
+
     private void remoteKey(int code) {
         switch (code) {
             case KeyEvent.KEYCODE_BACK: performGlobalAction(GLOBAL_ACTION_BACK); return;
@@ -146,8 +169,8 @@ public class FireHomeWatcher extends AccessibilityService {
             case KeyEvent.KEYCODE_DPAD_DOWN: move(View.FOCUS_DOWN); return;
             case KeyEvent.KEYCODE_DPAD_LEFT: move(View.FOCUS_LEFT); return;
             case KeyEvent.KEYCODE_DPAD_RIGHT: move(View.FOCUS_RIGHT); return;
-            case KeyEvent.KEYCODE_DPAD_CENTER:
-            case KeyEvent.KEYCODE_ENTER: select(false); return;
+            case KeyEvent.KEYCODE_DPAD_CENTER: select(false); return;
+            case KeyEvent.KEYCODE_ENTER: enter(); return;
             case KeyEvent.KEYCODE_MENU: select(true); return;
             case KeyEvent.KEYCODE_DEL: deleteOne(); return;
             default:
@@ -189,9 +212,49 @@ public class FireHomeWatcher extends AccessibilityService {
         }
     }
 
+    /**
+     * The text field to type into: the one with the focus, in any window but the keyboard's; else the first one on
+     * screen (a browser often has the page focused, not a field), which gets the focus.
+     */
     private AccessibilityNodeInfo field() {
+        List<AccessibilityNodeInfo> roots = new ArrayList<>();
+        AccessibilityNodeInfo active = getRootInActiveWindow();
+        if (active != null) roots.add(active);
+        for (AccessibilityWindowInfo w : getWindows()) {
+            if (w.getType() == AccessibilityWindowInfo.TYPE_INPUT_METHOD) continue;
+            AccessibilityNodeInfo r = w.getRoot();
+            if (r != null && !r.equals(active)) roots.add(r);
+        }
+        for (AccessibilityNodeInfo r : roots) {
+            AccessibilityNodeInfo f = r.findFocus(AccessibilityNodeInfo.FOCUS_INPUT);
+            if (f != null && f.isEditable()) return f;
+        }
+        for (AccessibilityNodeInfo r : roots) {
+            AccessibilityNodeInfo f = firstEditable(r);
+            if (f != null) {
+                f.performAction(AccessibilityNodeInfo.ACTION_FOCUS);
+                return f;
+            }
+        }
+        return null;
+    }
+
+    private static AccessibilityNodeInfo firstEditable(AccessibilityNodeInfo n) {
+        if (n == null || !n.isVisibleToUser()) return null;
+        if (n.isEditable() && n.isEnabled()) return n;
+        for (int i = 0; i < n.getChildCount(); i++) {
+            AccessibilityNodeInfo f = firstEditable(n.getChild(i));
+            if (f != null) return f;
+        }
+        return null;
+    }
+
+    /** Enter: submits the field being typed in (a search, a link), else selects like OK. */
+    private void enter() {
         AccessibilityNodeInfo f = focused();
-        return f != null && f.isEditable() ? f : null;
+        if (f != null && f.isEditable() && android.os.Build.VERSION.SDK_INT >= 30
+                && f.performAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_IME_ENTER.getId())) return;
+        select(false);
     }
 
     private void type(String text) {

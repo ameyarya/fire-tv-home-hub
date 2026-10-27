@@ -75,6 +75,14 @@
             android:screenOrientation="landscape" />
 
         <receiver
+            android:name=".PinReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.homecontrol.tv.PAIR_PIN" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
             android:name=".ControlReceiver"
             android:exported="true"
             android:permission="android.permission.DUMP">
