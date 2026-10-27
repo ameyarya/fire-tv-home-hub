@@ -228,10 +228,18 @@ final class Remote {
                 audio.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_TOGGLE_MUTE, AudioManager.FLAG_SHOW_UI);
                 return;
             case KeyEvent.KEYCODE_WAKEUP:
-                return;   // asleep, the TV isn't listening anyway
+                wake(app);
+                return;
             default:
                 toLauncher("key", code);
         }
+    }
+
+    /** Turns the screen on: no app may call PowerManager.wakeUp, but a wake lock that causes a wake-up does it. */
+    @SuppressWarnings("deprecation")
+    static void wake(Context c) {
+        c.getSystemService(PowerManager.class).newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK
+                | PowerManager.ACQUIRE_CAUSES_WAKEUP, "SmartHome:power").acquire(3000);
     }
 
     /** Types into whatever text field has focus on the TV. */
