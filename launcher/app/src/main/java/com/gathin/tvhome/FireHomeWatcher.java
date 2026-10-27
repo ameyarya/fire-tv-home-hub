@@ -259,18 +259,21 @@ public class FireHomeWatcher extends AccessibilityService {
             new Handler(Looper.getMainLooper()).postDelayed(this::imeEnter, 900);
             return;
         }
-        if (inYouTube()) {   // its keyboard's SEARCH if we just typed there, else OK
-            toSmartHome(new Intent("com.homecontrol.tv.TYPE").putExtra("youtube", "search"));
+        if (walkedKeyboard() != null) {   // YouTube's SEARCH, Netflix's first result, if we just typed there; else OK
+            toSmartHome(new Intent("com.homecontrol.tv.TYPE").putExtra("keyboard", walkedKeyboard()).putExtra("op", "enter"));
             return;
         }
         if (!imeEnter()) select(false);
     }
 
-    private static final String YOUTUBE = "com.amazon.firetv.youtube";
-
-    private boolean inYouTube() {
+    /** "youtube" or "netflix" when that app is in front: keyboards Smart Home types on by walking the arrows. */
+    private String walkedKeyboard() {
         AccessibilityNodeInfo r = getRootInActiveWindow();
-        return r != null && YOUTUBE.contentEquals(r.getPackageName());
+        CharSequence p = r == null ? null : r.getPackageName();
+        if (p == null) return null;
+        // (not Netflix yet: its results grid doesn't always stop the arrows where NetflixKeyboard expects, and a stray OK
+        // opens a title)
+        return "com.amazon.firetv.youtube".contentEquals(p) ? "youtube" : null;
     }
 
     private boolean imeEnter() {
@@ -286,8 +289,9 @@ public class FireHomeWatcher extends AccessibilityService {
             pressKeys(text, 0);
             return;
         }
-        if (f == null && inYouTube()) {   // YouTube's keyboard can't be read: Smart Home walks the arrows over its keys
-            toSmartHome(new Intent("com.homecontrol.tv.TYPE").putExtra("text", text).putExtra("youtube", "type"));
+        if (f == null && walkedKeyboard() != null) {   // YouTube's, Netflix's keyboard can't be read: Smart Home walks the arrows over its keys
+            toSmartHome(new Intent("com.homecontrol.tv.TYPE").putExtra("text", text).putExtra("keyboard", walkedKeyboard())
+                    .putExtra("op", "type"));
             return;
         }
         if (f == null) {   // neither: Fire OS's remote service types (it reaches Fire OS's own keyboard, if it's open)
@@ -350,8 +354,8 @@ public class FireHomeWatcher extends AccessibilityService {
 
     private void deleteOne() {
         AccessibilityNodeInfo f = field();
-        if (f == null && inYouTube()) {
-            toSmartHome(new Intent("com.homecontrol.tv.TYPE").putExtra("youtube", "backspace"));
+        if (f == null && walkedKeyboard() != null) {
+            toSmartHome(new Intent("com.homecontrol.tv.TYPE").putExtra("keyboard", walkedKeyboard()).putExtra("op", "backspace"));
             return;
         }
         if (f == null) {   // an app's own keyboard: its backspace key
