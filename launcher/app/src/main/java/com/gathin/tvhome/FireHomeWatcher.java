@@ -163,11 +163,16 @@ public class FireHomeWatcher extends AccessibilityService {
     private void gesture(float x, float y, float x2, float y2) {
         android.util.DisplayMetrics d = getResources().getDisplayMetrics();
         int px = (int) (x * d.widthPixels), py = (int) (y * d.heightPixels);
-        AccessibilityNodeInfo n = nodeAt(getRootInActiveWindow(), px, py);
+        AccessibilityNodeInfo root = getRootInActiveWindow();
+        AccessibilityNodeInfo n = nodeAt(root, px, py);
+        if (n == null) android.util.Log.i("FireHomeWatcher", "tap " + px + "," + py + ": nothing there (" + (root == null ? "no window" : root.getPackageName()) + ")");
         if (x2 == x && y2 == y) {
             for (; n != null; n = n.getParent()) {
                 if (n.isEditable()) n.performAction(AccessibilityNodeInfo.ACTION_FOCUS);
-                if (n.isClickable() && n.performAction(AccessibilityNodeInfo.ACTION_CLICK)) return;
+                if (n.isClickable() && n.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
+                    android.util.Log.i("FireHomeWatcher", "tap " + px + "," + py + " clicked " + n.getClassName() + " " + n.getViewIdResourceName());
+                    return;
+                }
             }
             return;
         }

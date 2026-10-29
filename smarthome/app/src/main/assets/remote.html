@@ -65,10 +65,13 @@
   .panel { position: absolute; left: 0; right: 0; bottom: 0; max-width: 560px; margin: 0 auto; background: #111;
            border-radius: 22px 22px 0 0; padding: 10px 16px max(22px, env(safe-area-inset-bottom)); max-height: 92vh; overflow: auto; }
   #logSheet .panel { height: 50vh; max-height: 50vh; }   /* Activity: half the screen, the list scrolls */
-  #scrImg { display: block; width: 100%; aspect-ratio: 16 / 9; border-radius: 12px; background: #000; touch-action: none; object-fit: contain; }
-  .scr-keys { display: flex; gap: 8px; margin-top: 10px; }
-  .scr-keys .key { flex: 0 0 52px; height: 44px; }
-  .scr-keys input { flex: 1; min-width: 0; height: 44px; border-radius: 12px; border: 1px solid var(--line); background: var(--tile); color: #fff; padding: 0 12px; font-size: 16px; }
+  .seg.mode { display: flex; margin-bottom: 10px; } .seg.mode button { flex: 1; }
+  #scr { display: none; position: relative; }
+  #scrImg { display: block; width: 100%; aspect-ratio: 16 / 9; border-radius: 14px; background: #000; touch-action: none;
+            -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  #scrTap { position: absolute; width: 28px; height: 28px; margin: -14px 0 0 -14px; border-radius: 50%; background: rgba(255,255,255,.55); opacity: 0; transition: opacity .4s; pointer-events: none; }
+  #scrStatus { position: absolute; left: 10px; top: 8px; font-size: 12px; color: #8e8e93; pointer-events: none; }
+  .remote-screen #pad { display: none; } .remote-screen #scr { display: block; }
   .grab { width: 40px; height: 5px; border-radius: 3px; background: #48484a; margin: 0 auto 10px; }
   .panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
   .panel-head b { font-size: 18px; }
@@ -182,7 +185,9 @@
   <div class="panel">
     <div class="grab"></div>
     <div class="panel-head"><b>TV Remote</b><span class="status"><i class="dot" id="rDot"></i><span id="rStatus">…</span></span></div>
+    <div class="seg mode" id="rMode"><button data-mode="pad">Touchpad</button><button data-mode="screen">Screen</button></div>
     <div id="pad"><div class="hint">Swipe to move · tap to select</div><div id="dot"></div></div>
+    <div id="scr"><img id="scrImg" alt="" draggable="false"><i id="scrTap"></i><span id="scrStatus"></span></div>
     <div class="keys">
       <button class="key" data-key="4" aria-label="Back"><svg><use href="#i-back"/></svg></button>
       <button class="key" data-key="3" aria-label="Home"><svg><use href="#i-home"/></svg></button>
@@ -215,20 +220,6 @@
     <div class="actions"><button id="camTv">Show on TV</button><button class="primary" id="camClose">Close</button></div>
   </div>
 </div>
-<div class="sheet" id="screenSheet">
-  <div class="panel">
-    <div class="grab"></div>
-    <div class="panel-head"><b>TV screen</b><span class="note" id="scrStatus"></span></div>
-    <img id="scrImg" alt="">
-    <div class="scr-keys">
-      <button class="key" data-key="4" aria-label="Back"><svg><use href="#i-back"/></svg></button>
-      <button class="key" data-key="3" aria-label="Home"><svg><use href="#i-home"/></svg></button>
-      <input type="text" id="scrText" placeholder="Type on the TV" autocapitalize="off" autocomplete="off" enterkeyhint="send">
-    </div>
-    <p class="note">Tap to click, drag to scroll. Netflix and Prime show black (they block it).</p>
-  </div>
-</div>
-
 <div class="sheet" id="setSheet">
   <div class="panel form" id="setForm"></div>
 </div>
@@ -316,8 +307,7 @@ function render() {
   const autos = h.automations.map(a => tile('auto ' + (a.enabled ? 'on' : 'off'), 'i-clock', a.enabled ? 'ON' : 'OFF', a.name,
     a.describe + (a.enabled && a.next ? ' · next ' + a.next : ''), `data-auto="${esc(a.id)}"`, 'automation', a.id));
   // in the shared order (Settings → Section order on the TV, or ▲▼ here in edit mode)
-  const remotes = [tile('', 'i-tv', '', 'TV', 'Tap for the remote', 'data-remote="tv"'),
-    tile('', 'i-tv', '', 'TV screen', 'Tap and scroll on it', 'data-screen="1"')];
+  const remotes = [tile('', 'i-tv', '', 'TV', 'Tap for the remote', 'data-remote="tv"')];
   const parts = { remotes: () => section('Remotes', remotes, filter === 'all', 'remotes'),
     scenes: () => section('Scenes', scenes, show('scenes'), 'scenes'),
     cameras: () => section('Cameras', cams, show('cameras'), 'cameras'),
@@ -368,8 +358,8 @@ $('#sections').addEventListener('click', e => {
   buzz();
   if (t.dataset.remote) {
     sheet('#remoteSheet', true);
-  } else if (t.dataset.screen) {
-    showScreen();
+    screenLoop();
+
   } else if (t.dataset.dev) {
     const on = t.dataset.on !== '1';
     t.classList.toggle('on', on); t.dataset.on = on ? 1 : 0; t.querySelector('.badge').textContent = on ? 'ON' : 'OFF';
@@ -669,35 +659,43 @@ document.querySelectorAll('.key').forEach(b => {
   });
   ['pointerup', 'pointerleave', 'pointercancel'].forEach(t => b.addEventListener(t, stop));
 });
-// ---- the TV's screen: a new picture each second (Android 11's limit) while the sheet is open; tap = click there, drag = scroll ----
-let screenOn = false;
-function showScreen() {
-  screenOn = true;
-  sheet('#screenSheet', true);
-  const img = $('#scrImg');
-  const next = () => { if (screenOn) img.src = api + 'screen.jpg?t=' + Date.now(); };
-  img.onload = () => { $('#scrStatus').textContent = ''; setTimeout(next, 100); };
-  img.onerror = () => { $('#scrStatus').textContent = 'No picture'; setTimeout(next, 1500); };
-  next();
+// ---- the TV's screen, in the remote (Touchpad | Screen): a new picture each second (Android 11's limit) while it's
+// showing; tap = click what's there, drag = scroll ----
+let rMode = 'pad';
+try { rMode = localStorage.getItem('remoteMode') || 'pad'; } catch (e) {}
+function screenLoop() {
+  const img = $('#scrImg'), showing = () => rMode === 'screen' && $('#remoteSheet').classList.contains('open');
+  if (!showing() || screenLoop.busy) return;
+  screenLoop.busy = true;
+  img.onload = () => { screenLoop.busy = false; $('#scrStatus').textContent = ''; setTimeout(screenLoop, 100); };
+  img.onerror = () => { screenLoop.busy = false; $('#scrStatus').textContent = 'No picture'; setTimeout(screenLoop, 1500); };
+  img.src = api + 'screen.jpg?t=' + Date.now();
 }
-$('#screenSheet').addEventListener('click', e => { if (e.target.id === 'screenSheet') screenOn = false; });
+function setMode(m) {
+  rMode = m;
+  try { localStorage.setItem('remoteMode', m); } catch (e) {}
+  $('#remoteSheet').classList.toggle('remote-screen', m === 'screen');
+  document.querySelectorAll('#rMode button').forEach(b => b.classList.toggle('on', b.dataset.mode === m));
+  screenLoop();
+}
+$('#rMode').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setMode(b.dataset.mode); });
+setMode(rMode);
 {
-  const img = $('#scrImg');
+  const img = $('#scrImg'), mark = $('#scrTap');
   let s0 = null;
   const frac = e => { const r = img.getBoundingClientRect(); return [(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height].map(v => Math.min(1, Math.max(0, v)).toFixed(4)); };
-  img.addEventListener('pointerdown', e => { e.preventDefault(); img.setPointerCapture(e.pointerId); s0 = { x: e.clientX, y: e.clientY, f: frac(e) }; });
+  img.addEventListener('pointerdown', e => { e.preventDefault(); try { img.setPointerCapture(e.pointerId); } catch (err) {} s0 = { x: e.clientX, y: e.clientY, f: frac(e) }; });
   img.addEventListener('pointerup', e => {
     if (!s0) return;
     const moved = Math.hypot(e.clientX - s0.x, e.clientY - s0.y) > 16;
+    const r = img.getBoundingClientRect();
+    mark.style.left = (s0.x - r.left) + 'px'; mark.style.top = (s0.y - r.top) + 'px';
+    mark.style.opacity = 1; setTimeout(() => { mark.style.opacity = 0; }, 350);
     buzz(); post('gesture', (moved ? s0.f.concat(frac(e)) : s0.f).join(','));
     s0 = null;
   });
   img.addEventListener('pointercancel', () => { s0 = null; });
-  $('#scrText').addEventListener('keydown', e => {
-    if (e.key !== 'Enter') return;
-    e.preventDefault(); const t = e.target.value;
-    if (t) { post('type', t); e.target.value = ''; setTimeout(() => post('key?c=66'), 1500); }
-  });
+  img.addEventListener('contextmenu', e => e.preventDefault());
 }
 // touch pad: swipe = arrows (one per 48 px), tap = OK, tap near an edge = that arrow
 const pad = $('#pad'), dot = $('#dot');
