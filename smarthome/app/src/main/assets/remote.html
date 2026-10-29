@@ -148,6 +148,7 @@
   <symbol id="i-vup" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4zM14 3.2v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6z"/></symbol>
   <symbol id="i-mute" viewBox="0 0 24 24"><path d="M16.5 12A4.5 4.5 0 0 0 14 8v2.2l2.5 2.5V12zM19 12c0 .9-.2 1.8-.5 2.6l1.5 1.5A8.8 8.8 0 0 0 21 12a9 9 0 0 0-7-8.8v2.1A7 7 0 0 1 19 12zM4.3 3 3 4.3 7.7 9H3v6h4l5 5v-6.7l4.3 4.3c-.7.5-1.4.9-2.3 1.1v2.1a9 9 0 0 0 3.7-1.8l2 2 1.3-1.3L4.3 3zM12 4 9.9 6.1 12 8.2V4z"/></symbol>
   <symbol id="i-power" viewBox="0 0 24 24"><path d="M13 3h-2v10h2V3zm4.8 2.2-1.4 1.4A7 7 0 1 1 7.6 6.6L6.2 5.2A9 9 0 1 0 17.8 5.2z"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.4 7.4 0 0 0-1.7-1L15 3h-4l-.4 2.9a7.4 7.4 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.6 7.6 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.4 7.4 0 0 0 1.7 1L11 21h4l.4-2.9a7.4 7.4 0 0 0 1.7-1l2.5 1 2-3.5-2.2-1.6zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></symbol>
   <symbol id="i-edit" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.8 9.94l-3.75-3.75L3 17.25zM20.7 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></symbol>
   <symbol id="i-kbd" viewBox="0 0 24 24"><path d="M20 5H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm-9 3h2v2h-2V8zm0 3h2v2h-2v-2zM8 8h2v2H8V8zm0 3h2v2H8v-2zm-1 2H5v-2h2v2zm0-3H5V8h2v2zm9 7H8v-2h8v2zm0-4h-2v-2h2v2zm0-3h-2V8h2v2zm3 3h-2v-2h2v2zm0-3h-2V8h2v2z"/></symbol>
@@ -159,6 +160,7 @@
     <div class="pills">
       <button class="pill icon" id="editBtn" aria-label="Move tiles"><svg><use href="#i-edit"/></svg></button>
       <button class="pill icon" id="openLog" aria-label="Activity"><svg><use href="#i-list"/></svg></button>
+      <button class="pill icon" id="openSettings" aria-label="Settings"><svg><use href="#i-gear"/></svg></button>
       <button class="pill icon" id="addBtn" aria-label="Add"><svg><use href="#i-plus"/></svg></button>
     </div>
   </header>
@@ -207,6 +209,10 @@
     <div class="actions"><button id="camTv">Show on TV</button><button class="primary" id="camClose">Close</button></div>
   </div>
 </div>
+<div class="sheet" id="setSheet">
+  <div class="panel form" id="setForm"></div>
+</div>
+
 <div class="sheet" id="addSheet">
   <div class="panel form" id="addForm"></div>
 </div>
@@ -393,6 +399,49 @@ function addMenu() {
   sheet('#addSheet', true);
 }
 $('#addBtn').onclick = addMenu;
+
+// ---- settings (the TV's own Settings screens are hidden; these are what they held) ----
+$('#openSettings').onclick = async () => {
+  const f = $('#setForm');
+  f.innerHTML = '<div class="grab"></div><div class="panel-head"><b>Settings</b></div><p class="note">Loading…</p>';
+  sheet('#setSheet', true);
+  let s;
+  try { s = await fetch(api + 'settings').then(r => r.json()); } catch (e) { f.querySelector('.note').textContent = 'The TV isn\u2019t answering'; return; }
+  const x = { screensaver: s.screensaver, fahrenheit: s.fahrenheit, awake: s.awake, code: s.code, loc: s.location ? s.location.lat + ',' + s.location.lon : '' };
+  const cities = s.zones.map(z => `<optgroup label="${esc(z.zone)}">${z.cities.map(c => `<option value="${c.lat},${c.lon}">${esc(c.name)}</option>`).join('')}</optgroup>`).join('');
+  const here = s.location && !s.zones.some(z => z.cities.some(c => c.lat + ',' + c.lon === x.loc))
+    ? `<option value="${x.loc}">${esc(s.location.name || x.loc)}</option>` : '';
+  function draw() {
+    f.innerHTML = `<div class="grab"></div><div class="panel-head"><b>Settings</b></div>
+      <label>Location (sunrise, sunset and weather)</label>
+      <select id="sLoc">${s.location ? '' : '<option value="">Not set</option>'}${here}${cities}</select>
+      <label>Screensaver</label>
+      <select id="sSaver">${[0, 2, 5, 10, 20, 30].map(m => `<option value="${m}" ${m === x.screensaver ? 'selected' : ''}>${m ? 'Clock after ' + m + ' min with nothing playing' : 'Off'}</option>`).join('')}</select>
+      <label>Temperature</label>
+      <span class="seg" id="sUnit"><button data-u="c" class="${x.fahrenheit ? '' : 'on'}">°C</button><button data-u="f" class="${x.fahrenheit ? 'on' : ''}">°F</button></span>
+      <label>Pairing code (for a new phone)</label>
+      <input type="text" id="sCode" value="${esc(x.code)}" inputmode="numeric" maxlength="4" pattern="[0-9]*">
+      <div class="switch-row"><span>This page works while the TV is off<br><small class="note">Keeps the TV's Wi-Fi up, a few watts</small></span><span class="sw ${x.awake ? 'on' : ''}" id="sAwake" role="switch"></span></div>
+      <div class="err" id="sErr"></div>
+      <div class="actions"><button id="sCancel">Cancel</button><button class="primary" id="sSave">Save</button></div>`;
+    $('#sLoc').value = x.loc;
+  }
+  draw();
+  f.onclick = async e => {
+    const b = e.target.closest('button, .sw'); if (!b) return;
+    x.loc = $('#sLoc').value; x.screensaver = +$('#sSaver').value; x.code = $('#sCode').value.trim();
+    if (b.dataset.u) { x.fahrenheit = b.dataset.u === 'f'; draw(); }
+    else if (b.id === 'sAwake') { x.awake = !x.awake; draw(); }
+    else if (b.id === 'sCancel') sheet('#setSheet', false);
+    else if (b.id === 'sSave') {
+      const out = { screensaver: x.screensaver, fahrenheit: x.fahrenheit, awake: x.awake, code: x.code };
+      if (x.loc) { const [lat, lon] = x.loc.split(','); out.lat = +lat; out.lon = +lon; }
+      const r = await post('settings', JSON.stringify(out));
+      if (r && r.ok) { sheet('#setSheet', false); toast('Saved'); load(); }
+      else $('#sErr').textContent = r ? await r.text() : 'The TV isn\u2019t answering';
+    }
+  };
+};
 function rename(kind, id, name) {   // a small form in the + Add sheet
   addForm.innerHTML = `<div class="grab"></div><div class="panel-head"><b>Rename</b></div>
     <label>Name</label><input type="text" id="newName" value="${esc(name)}" maxlength="40">

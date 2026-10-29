@@ -454,6 +454,58 @@ final class HomeApi {
         });
     }
 
+    /**
+     * Settings for the phone page (the TV's own Settings screens are hidden): location, screensaver, °C/°F, the
+     * pairing code, and the page while the TV is off. Cities come grouped by time zone, the TV's own first.
+     */
+    static JSONObject settings(Context c) throws JSONException {
+        Home h = onMain(() -> Storage.get(c));
+        JSONObject o = new JSONObject();
+        boolean set = !Double.isNaN(h.latitude);
+        o.put("location", set ? new JSONObject().put("name", Places.nearest(h.latitude, h.longitude))
+                .put("lat", h.latitude).put("lon", h.longitude) : JSONObject.NULL);
+        o.put("screensaver", Idle.minutes(c)).put("fahrenheit", Idle.fahrenheit(c))
+                .put("code", Remote.code(c)).put("awake", Remote.keepAwake(c));
+        JSONArray zones = new JSONArray();
+        Places.Zone mine = Places.forTv(java.time.ZoneId.systemDefault());
+        List<Places.Zone> order = new ArrayList<>();
+        if (mine != null) order.add(mine);
+        for (Places.Zone z : Places.ZONES.values()) if (z != mine) order.add(z);
+        for (Places.Zone z : order) {
+            JSONArray cities = new JSONArray();
+            for (Places.City x : z.cities) cities.put(new JSONObject().put("name", x.name).put("lat", x.lat).put("lon", x.lon));
+            zones.put(new JSONObject().put("zone", z.label).put("cities", cities));
+        }
+        return o.put("zones", zones);
+    }
+
+    /** Saves the settings the phone sent (any of them); null when saved, else what's wrong. */
+    static String saveSettings(Context c, String json) {
+        JSONObject o;
+        try {
+            o = new JSONObject(json);
+        } catch (JSONException e) {
+            return "not settings";
+        }
+        if (o.has("code") && !Remote.setCode(c, o.optString("code"))) return "The code is 4 digits";
+        if (o.has("screensaver") && !Idle.set(c, o.optInt("screensaver"))) return "The clean launcher (which opens the clock) isn't installed";
+        if (o.has("fahrenheit")) Idle.setFahrenheit(c, o.optBoolean("fahrenheit"));
+        if (o.has("awake")) Remote.setKeepAwake(c, o.optBoolean("awake"));
+        if (o.has("lat") && o.has("lon")) {
+            double lat = o.optDouble("lat"), lon = o.optDouble("lon");
+            if (Double.isNaN(lat) || Double.isNaN(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return "Not a place on Earth";
+            onMain(() -> {
+                Home h = Storage.get(c);
+                h.latitude = lat;
+                h.longitude = lon;
+                Storage.save(c);
+                Scheduler.reschedule(c);   // sunrise and sunset move
+                return null;
+            });
+        }
+        return null;
+    }
+
     static JSONArray activity(Context c) {
         return new JSONArray(ActivityLog.recent(c, 40));
     }

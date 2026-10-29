@@ -196,6 +196,10 @@ final class RemoteServer {
             reply(out, HomeApi.deleteScene(app, param(query, "id")) ? 204 : 400, "text/plain", "");
         } else if (method.equals("POST") && action.equals("camera-add")) {
             answer(out, HomeApi.addCamera(app, body));
+        } else if (method.equals("GET") && action.equals("settings")) {
+            reply(out, 200, "application/json", HomeApi.settings(app).toString());
+        } else if (method.equals("POST") && action.equals("settings")) {
+            answer(out, HomeApi.saveSettings(app, body));
         } else if (method.equals("POST") && action.equals("rename")) {
             answer(out, HomeApi.rename(app, param(query, "kind"), param(query, "id"), body));
         } else if (method.equals("POST") && action.equals("room-add")) {
