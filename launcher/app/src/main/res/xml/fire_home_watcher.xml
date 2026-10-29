@@ -9,5 +9,6 @@
     android:canRequestFilterKeyEvents="true"
     android:canRetrieveWindowContent="true"
     android:canPerformGestures="false"
+    android:canTakeScreenshot="true"
     android:notificationTimeout="0"
     android:description="@string/fire_home_description" />

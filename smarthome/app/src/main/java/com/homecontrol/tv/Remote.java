@@ -53,7 +53,7 @@ final class Remote {
     }
 
     private void toLauncher(String extra, Object value) {
-        Intent i = new Intent(TO_LAUNCHER).setPackage(LAUNCHER);
+        Intent i = new Intent(TO_LAUNCHER).setPackage(LAUNCHER).addFlags(Intent.FLAG_RECEIVER_FOREGROUND);
         if (value instanceof Integer) i.putExtra(extra, (Integer) value);
         else i.putExtra(extra, (String) value);
         app.sendBroadcast(i);
@@ -204,6 +204,27 @@ final class Remote {
     static void wake(Context c) {
         c.getSystemService(PowerManager.class).newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK
                 | PowerManager.ACQUIRE_CAUSES_WAKEUP, "SmartHome:power").acquire(3000);
+    }
+
+    /** The TV's screen now as a JPEG, from the clean launcher (MirrorProvider); null when it can't. */
+    byte[] screen() {
+        try {
+            android.os.Bundle b = app.getContentResolver().call(android.net.Uri.parse("content://com.gathin.tvhome.mirror"),
+                    "shot", null, null);
+            if (b == null) return null;
+            lastError = b.getString("error", "");
+            return b.getByteArray("jpeg");
+        } catch (RuntimeException e) {   // launcher missing, or signed differently
+            lastError = "screen: " + e.getMessage();
+            return null;
+        }
+    }
+
+    /** A tap at (x, y), or a swipe to (x2, y2), on the TV's screen, in fractions of it (the launcher clicks or scrolls). */
+    void gesture(float[] g) {
+        for (float v : g) if (!(v >= 0 && v <= 1)) return;
+        app.sendBroadcast(new Intent(TO_LAUNCHER).setPackage(LAUNCHER).putExtra("gesture", g)
+                .addFlags(Intent.FLAG_RECEIVER_FOREGROUND));   // the background queue can take seconds
     }
 
     /** Types into whatever text field has focus on the TV. */

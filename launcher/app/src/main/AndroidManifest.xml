@@ -6,6 +6,9 @@
     <uses-feature android:name="android.hardware.wifi" android:required="false" />
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
 
+    <!-- The TV's screen, for Smart Home's phone page only (signed with the same key). -->
+    <permission android:name="com.gathin.tvhome.permission.MIRROR" android:protectionLevel="signature" />
+
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <!-- Needed on Android 10 to read the Wi-Fi network name; granted over adb at install time. -->
@@ -145,5 +148,10 @@
                 android:name="android.accessibilityservice"
                 android:resource="@xml/input_key_service" />
         </service>
+        <provider
+            android:name=".MirrorProvider"
+            android:authorities="com.gathin.tvhome.mirror"
+            android:exported="true"
+            android:permission="com.gathin.tvhome.permission.MIRROR" />
     </application>
 </manifest>

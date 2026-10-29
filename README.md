@@ -28,6 +28,10 @@ router so the link stays put):
 - **Home**, like the TV app: a summary line, filter pills, scenes, cameras, plugs with live watts, automations.
 - **+** at the top right: add a plug or sensor (find on Wi-Fi, or by address), a camera, a scene, an automation, a room.
 - **✎**: move tiles and whole sections; the order is shared with the TV. In ✎ mode, tap a plug, sensor or camera to rename it, or a scene or automation to edit it.
+- **Remotes** section, **TV screen**: the TV's screen as a picture, a new one each second (Android 11's limit for
+  this); tap on it to click what's there, drag to scroll, and type. No cursor to steer in Silk. Netflix and Prime
+  show black. (The launcher takes the pictures and clicks; Fire OS cancels touch input from apps, so a tap clicks the
+  element under it.)
 - **Remotes** section, **TV**: touchpad, Back / Home / Play / Menu, volume, power and typing on the TV.
 - **Activity**, behind ☰.
 

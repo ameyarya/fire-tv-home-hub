@@ -89,9 +89,125 @@ public class FireHomeWatcher extends AccessibilityService {
         }
     };
 
+    // ---- mirror (Smart Home's phone page): the screen as a picture, and taps and swipes on it -------------------
+
+    private static FireHomeWatcher running;
+    static volatile String lastShotError = "";
+
+    /** The screen now as a JPEG (at most 960 wide), or null; blocks up to 2 s. Android 11 allows one a second. */
+    private static long lastShotAt;
+    private static byte[] lastShot;
+
+    static synchronized byte[] shot() {
+        // Android 11 allows an accessibility screenshot once a second (later versions every 333 ms): wait out the rest
+        // of that, and fall back to the last one
+        long gap = android.os.Build.VERSION.SDK_INT >= 31 ? 350 : 1020;
+        long wait = lastShotAt + gap - SystemClock.uptimeMillis();
+        if (wait > 0) SystemClock.sleep(wait);
+        byte[] b = shotNow();
+        lastShotAt = SystemClock.uptimeMillis();
+        if (b != null) lastShot = b;
+        return b != null ? b : lastShot;
+    }
+
+    private static byte[] shotNow() {
+        FireHomeWatcher w = running;
+        if (w == null || android.os.Build.VERSION.SDK_INT < 30) {
+            lastShotError = "the launcher's accessibility service isn't on";
+            return null;
+        }
+        java.util.concurrent.CountDownLatch done = new java.util.concurrent.CountDownLatch(1);
+        byte[][] out = new byte[1][];
+        w.takeScreenshot(android.view.Display.DEFAULT_DISPLAY, w.getMainExecutor(), new TakeScreenshotCallback() {
+            @Override
+            public void onSuccess(ScreenshotResult r) {
+                try {
+                    android.graphics.Bitmap hw = android.graphics.Bitmap.wrapHardwareBuffer(r.getHardwareBuffer(), r.getColorSpace());
+                    r.getHardwareBuffer().close();
+                    if (hw != null) {
+                        android.graphics.Bitmap sw = hw.copy(android.graphics.Bitmap.Config.ARGB_8888, false);
+                        hw.recycle();
+                        int width = Math.min(960, sw.getWidth());
+                        android.graphics.Bitmap small = android.graphics.Bitmap.createScaledBitmap(sw, width,
+                                sw.getHeight() * width / sw.getWidth(), true);
+                        java.io.ByteArrayOutputStream b = new java.io.ByteArrayOutputStream(64 * 1024);
+                        small.compress(android.graphics.Bitmap.CompressFormat.JPEG, 60, b);
+                        out[0] = b.toByteArray();
+                        if (small != sw) small.recycle();
+                        sw.recycle();
+                    }
+                } catch (RuntimeException e) {
+                    lastShotError = String.valueOf(e);
+                }
+                done.countDown();
+            }
+
+            @Override
+            public void onFailure(int code) {
+                lastShotError = code == ERROR_TAKE_SCREENSHOT_INTERVAL_TIME_SHORT ? "too soon" : "screenshot failed (" + code + ")";
+                done.countDown();
+            }
+        });
+        try {
+            done.await(2, java.util.concurrent.TimeUnit.SECONDS);
+        } catch (InterruptedException ignored) {
+        }
+        return out[0];
+    }
+
+    /**
+     * A tap at (x, y), or a swipe from there to (x2, y2), in fractions of the screen. Fire OS cancels touch gestures
+     * from apps (the TV has no touchscreen), so a tap clicks the element under that point (links and buttons in web
+     * pages too) and a swipe scrolls what's under it.
+     */
+    private void gesture(float x, float y, float x2, float y2) {
+        android.util.DisplayMetrics d = getResources().getDisplayMetrics();
+        int px = (int) (x * d.widthPixels), py = (int) (y * d.heightPixels);
+        AccessibilityNodeInfo n = nodeAt(getRootInActiveWindow(), px, py);
+        if (x2 == x && y2 == y) {
+            for (; n != null; n = n.getParent()) {
+                if (n.isEditable()) n.performAction(AccessibilityNodeInfo.ACTION_FOCUS);
+                if (n.isClickable() && n.performAction(AccessibilityNodeInfo.ACTION_CLICK)) return;
+            }
+            return;
+        }
+        float dx = x2 - x, dy = y2 - y;   // finger up = content moves up = scroll forward (down the page)
+        boolean forward = Math.abs(dy) >= Math.abs(dx) ? dy < 0 : dx < 0;
+        for (; n != null; n = n.getParent()) {
+            if (n.isScrollable() && n.performAction(forward ? AccessibilityNodeInfo.ACTION_SCROLL_FORWARD
+                    : AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD)) return;
+        }
+        remoteKey(Math.abs(dy) >= Math.abs(dx) ? (forward ? KeyEvent.KEYCODE_DPAD_DOWN : KeyEvent.KEYCODE_DPAD_UP)
+                : (forward ? KeyEvent.KEYCODE_DPAD_RIGHT : KeyEvent.KEYCODE_DPAD_LEFT));
+    }
+
+    /** The smallest visible element containing the point, preferring one that can be clicked (a link, a button). */
+    private static AccessibilityNodeInfo nodeAt(AccessibilityNodeInfo root, int x, int y) {
+        AccessibilityNodeInfo[] best = new AccessibilityNodeInfo[2];   // {smallest clickable, smallest of any}
+        long[] area = {Long.MAX_VALUE, Long.MAX_VALUE};
+        collectAt(root, x, y, best, area);
+        return best[0] != null ? best[0] : best[1];
+    }
+
+    private static void collectAt(AccessibilityNodeInfo n, int x, int y, AccessibilityNodeInfo[] best, long[] area) {
+        if (n == null || !n.isVisibleToUser()) return;
+        android.graphics.Rect r = new android.graphics.Rect();
+        n.getBoundsInScreen(r);
+        if (r.contains(x, y)) {
+            long a = (long) r.width() * r.height();
+            int k = n.isClickable() || n.isEditable() ? 0 : 1;
+            if (a < area[k]) {
+                area[k] = a;
+                best[k] = n;
+            }
+        }
+        for (int i = 0; i < n.getChildCount(); i++) collectAt(n.getChild(i), x, y, best, area);
+    }
+
     @Override
     protected void onServiceConnected() {
         super.onServiceConnected();
+        running = this;
         IntentFilter f = new IntentFilter(Intent.ACTION_SCREEN_ON);
         f.addAction(Intent.ACTION_SCREEN_OFF);
         registerReceiver(screen, f);
@@ -117,6 +233,11 @@ public class FireHomeWatcher extends AccessibilityService {
         public void onReceive(Context c, Intent i) {
             poke();
             if (i.hasExtra("key")) remoteKey(i.getIntExtra("key", 0));
+            float[] g = i.getFloatArrayExtra("gesture");   // {x, y} tap, {x, y, x2, y2} swipe, fractions of the screen
+            if (g != null && g.length >= 2) {
+                boolean swipe = g.length >= 4;
+                gesture(g[0], g[1], swipe ? g[2] : g[0], swipe ? g[3] : g[1]);
+            }
             if (i.hasExtra("text")) type(i.getStringExtra("text"));
             if (i.getBooleanExtra("readPin", false)) readPin(SystemClock.uptimeMillis() + 6000);
             String open = i.getStringExtra("open");
@@ -317,7 +438,8 @@ public class FireHomeWatcher extends AccessibilityService {
     }
 
     private void toSmartHome(Intent i) {
-        sendBroadcast(i.setComponent(new ComponentName("com.homecontrol.tv", "com.homecontrol.tv.PinReceiver")));
+        sendBroadcast(i.setComponent(new ComponentName("com.homecontrol.tv", "com.homecontrol.tv.PinReceiver"))
+                .addFlags(Intent.FLAG_RECEIVER_FOREGROUND));
     }
 
     /**
@@ -478,6 +600,7 @@ public class FireHomeWatcher extends AccessibilityService {
 
     @Override
     public void onDestroy() {
+        if (running == this) running = null;
         try {
             unregisterReceiver(screen);
         } catch (IllegalArgumentException ignored) {

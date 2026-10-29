@@ -196,6 +196,22 @@ final class RemoteServer {
             reply(out, HomeApi.deleteScene(app, param(query, "id")) ? 204 : 400, "text/plain", "");
         } else if (method.equals("POST") && action.equals("camera-add")) {
             answer(out, HomeApi.addCamera(app, body));
+        } else if (method.equals("GET") && action.equals("screen.jpg")) {   // the TV's screen, for the TV screen view
+            byte[] jpeg = remote.screen();
+            if (jpeg == null) reply(out, 503, "text/plain", remote.lastError);
+            else replyBytes(out, 200, "image/jpeg", jpeg);
+        } else if (method.equals("POST") && action.equals("gesture")) {
+            String[] v = body.trim().split(",");
+            if (v.length == 2 || v.length == 4) {
+                float[] g = new float[v.length];
+                try {
+                    for (int i = 0; i < v.length; i++) g[i] = Float.parseFloat(v[i]);
+                    remote.gesture(g);
+                    reply(out, 204, "text/plain", "");
+                } catch (NumberFormatException e) {
+                    reply(out, 400, "text/plain", "x,y or x,y,x2,y2");
+                }
+            } else reply(out, 400, "text/plain", "x,y or x,y,x2,y2");
         } else if (method.equals("GET") && action.equals("settings")) {
             reply(out, 200, "application/json", HomeApi.settings(app).toString());
         } else if (method.equals("POST") && action.equals("settings")) {
