@@ -109,6 +109,8 @@
   .seg button { height: 32px; padding: 0 12px; border-radius: 8px; font-size: 14px; color: var(--dim); }
   .seg button.on { background: #3a3a3c; color: #fff; }
   .devrow { display: flex; justify-content: space-between; align-items: center; padding: 8px 2px; }
+  .between { display: flex; align-items: center; gap: 10px; margin-top: 10px; color: var(--dim); }
+  .form .between input[type=time] { flex: 1; width: auto; }
   .switch-row { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; }
   .sw { width: 51px; height: 31px; border-radius: 16px; background: #39393d; position: relative; }
   .sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; transition: left .15s; }
@@ -536,7 +538,6 @@ function editScene(sc) {
 // ---- the automation editor: the same choices as on the TV ----
 const TRIGGERS = [['at', 'At a time of day'], ['sunrise', 'At sunrise'], ['sunset', 'At sunset'], ['tv-on', 'When the TV turns on'], ['tv-off', 'When the TV turns off']];
 const OFFSETS = [[-60, '1 h before'], [-30, '30 min before'], [-15, '15 min before'], [0, 'Exactly then'], [15, '15 min after'], [30, '30 min after'], [60, '1 h after']];
-const WINDOWS = [[-1, -1, 'Any time'], [1080, 1380, 'In the evening (18:00–23:00)'], [1320, 360, 'At night (22:00–06:00)'], [360, 1080, 'In the daytime (06:00–18:00)']];
 const DAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 const AUTO_OFF = [[0, 'Leave them on'], [5, '5 min'], [15, '15 min'], [30, '30 min'], [60, '1 hour'], [120, '2 hours']];
 const opt = (v, label, sel) => `<option value="${v}" ${sel ? 'selected' : ''}>${esc(label)}</option>`;
@@ -549,21 +550,16 @@ function editAuto(a) {
   const f = $('#autoForm');
   function draw() {
     const sun = x.when === 'sunrise' || x.when === 'sunset', tv = x.when === 'tv-on' || x.when === 'tv-off';
-    // a window set on the TV that isn't one of these stays as it is, as its own choice
-    const wins = WINDOWS.slice();
-    if (x.window_from >= 0 && !wins.some(w => w[0] === x.window_from && w[1] === x.window_to))
-      wins.push([x.window_from, x.window_to, hm(x.window_from) + '–' + hm(x.window_to)]);
-    const win = wins.findIndex(w => w[0] === x.window_from && w[1] === x.window_to);
     const devs = home.devices.filter(d => d.switch);
     const state = id => { const a2 = x.actions.find(y => y.device === id); return a2 ? (a2.on ? 'on' : 'off') : 'skip'; };
-    f._wins = wins;
     f.innerHTML = `<div class="grab"></div>
       <div class="panel-head"><b>${a ? 'Edit automation' : 'New automation'}</b></div>
       <label>Name</label><input type="text" id="aName" value="${esc(x.name)}" placeholder="e.g. Evening lights" maxlength="40">
       <label>When</label><select id="aWhen">${TRIGGERS.map(t => opt(t[0], t[1], t[0] === x.when)).join('')}</select>
       ${x.when === 'at' ? `<label>Time</label><input type="time" id="aTime" value="${hm(Math.max(0, x.minutes))}">` : ''}
       ${sun ? `<label>Offset</label><select id="aOffset">${OFFSETS.map(o => opt(o[0], o[1], o[0] === x.minutes)).join('')}</select>` : ''}
-      ${tv ? `<label>Only</label><select id="aWindow">${wins.map((w, i) => opt(i, w[2], i === Math.max(0, win))).join('')}</select>` : ''}
+      ${tv ? `<div class="switch-row"><span>Only between certain times</span><span class="sw ${x.window_from >= 0 ? 'on' : ''}" id="aWin" role="switch"></span></div>
+        ${x.window_from >= 0 ? `<div class="between"><input type="time" id="aFrom" value="${hm(x.window_from)}"><span>to</span><input type="time" id="aTo" value="${hm(x.window_to)}"></div>` : ''}` : ''}
       <label>Days</label><div class="chips" id="aDays">${DAYS.map((d, i) => `<button data-day="${i}" class="${x.days & (1 << i) ? 'on' : ''}">${d}</button>`).join('')}</div>
       <label>Do</label><div class="seg" id="aMode"><button data-m="scene" class="${useScene ? 'on' : ''}">Run a scene</button><button data-m="devices" class="${useScene ? '' : 'on'}">Switch devices</button></div>
       ${useScene ? `<div style="margin-top:10px"><select id="aScene">${opt('', 'Choose a scene', !x.scene)}${home.scenes.map(s => opt(s.id, s.name, s.id === x.scene)).join('')}</select></div>`
@@ -579,7 +575,8 @@ function editAuto(a) {
     x.when = $('#aWhen').value;
     if ($('#aTime')) { const [h2, m2] = $('#aTime').value.split(':').map(Number); x.minutes = (h2 || 0) * 60 + (m2 || 0); }
     if ($('#aOffset')) x.minutes = +$('#aOffset').value;
-    if ($('#aWindow')) { const w = f._wins[+$('#aWindow').value]; x.window_from = w[0]; x.window_to = w[1]; }
+    const mins = v => { const [h2, m2] = (v || '0:0').split(':').map(Number); return (h2 || 0) * 60 + (m2 || 0); };
+    if ($('#aFrom')) { x.window_from = mins($('#aFrom').value); x.window_to = mins($('#aTo').value); }
     if ($('#aScene')) x.scene = $('#aScene').value;
     x.auto_off = +$('#aOff').value;
   }
@@ -595,6 +592,7 @@ function editAuto(a) {
       draw();
     }
     else if (b.id === 'aOn') { x.enabled = !x.enabled; draw(); }
+    else if (b.id === 'aWin') { if (x.window_from >= 0) x.window_from = x.window_to = -1; else { x.window_from = 22 * 60; x.window_to = 6 * 60; } draw(); }
     else if (b.id === 'aCancel') sheet('#autoSheet', false);
     else if (b.id === 'aDel') {
       if (!confirm('Delete ' + (x.name || 'this automation') + '?')) return;

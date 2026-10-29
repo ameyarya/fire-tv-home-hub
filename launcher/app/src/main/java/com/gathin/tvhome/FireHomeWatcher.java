@@ -50,7 +50,9 @@ public class FireHomeWatcher extends AccessibilityService {
      */
     private static final long GUARD_MS = 800;
     /** How long Amazon's home may flash up while Settings is starting. */
-    private static final long SETTINGS_START_MS = 2000;
+    private static final long SETTINGS_START_MS = 2000, SETTINGS_SHOWN_MS = 500;
+    private long settingsShownAt = -SETTINGS_SHOWN_MS;
+    private boolean amazonHomeInFront;
     private long lastLaunch = -GUARD_MS;
     /** When Amazon's home last came to the front; compared with MainActivity.resumedAt. */
     private long lastAmazonHome;
@@ -432,14 +434,24 @@ public class FireHomeWatcher extends AccessibilityService {
         String pkg = p.toString(), cls = cl.toString();
         if (cls.contains(".")) front = cls;   // activities, not dialogs and views named without a package
         long now = SystemClock.uptimeMillis();
-        if (cls.contains("MainSettingsActivity")) {
-            settingsOpenedAt = now;
-            return;
-        }
         boolean amazonHome = ("com.amazon.tv.launcher".equals(pkg) && cls.contains("HomeActivity"))
                 || "com.amazon.firehomestarter".equals(pkg);
-        if (!amazonHome || now - settingsOpenedAt < SETTINGS_START_MS) return;
+        if (cls.contains(".")) amazonHomeInFront = amazonHome;
+        if (cls.contains("MainSettingsActivity")) {
+            // Settings is up: the pass-through is over, so leaving Settings for Amazon's home brings this one back at
+            // once (only a moment's grace for a late event from the way in)
+            settingsOpenedAt = -SETTINGS_START_MS;
+            settingsShownAt = now;
+            return;
+        }
+        if (!amazonHome) return;
+        long graceUntil = Math.max(settingsOpenedAt + SETTINGS_START_MS, settingsShownAt + SETTINGS_SHOWN_MS);
         lastAmazonHome = now;
+        if (now < graceUntil) {   // passing through on the way to Settings; if it's still in front after, take over
+            handler.removeCallbacks(recheck);
+            handler.postAtTime(recheck, graceUntil);
+            return;
+        }
         if (now - lastLaunch < GUARD_MS) {
             handler.removeCallbacks(recheck);
             handler.postAtTime(recheck, lastLaunch + GUARD_MS);
@@ -450,7 +462,7 @@ public class FireHomeWatcher extends AccessibilityService {
 
     /** After the guard: Amazon's home came up after this launcher last did, so it is still in front. */
     private void recheck() {
-        if (MainActivity.resumedAt < lastAmazonHome && SystemClock.uptimeMillis() - settingsOpenedAt >= SETTINGS_START_MS) {
+        if (MainActivity.resumedAt < lastAmazonHome && amazonHomeInFront) {
             showHome();
         }
     }

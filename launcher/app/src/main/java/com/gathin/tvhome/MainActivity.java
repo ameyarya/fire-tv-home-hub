@@ -825,7 +825,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 }
             }
         }
-        btnInputs.setVisibility(any ? View.VISIBLE : View.GONE);
+        // Fire OS lets no other app switch inputs, or even open its own Inputs screen: the Input button is the way
+        btnInputs.setVisibility(any && !isFireOs(this) ? View.VISIBLE : View.GONE);
     }
 
     /** The Live TV app's launch intent: its leanback entry point, or the configured action if it has none. */

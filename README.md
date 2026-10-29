@@ -10,7 +10,7 @@ debloat tooling come from **[cleanyourtv](https://github.com/Gathin23/cleanyourt
 
 | Folder | What it is |
 |---|---|
-| [`launcher/`](launcher) | **Clean home screen** (from cleanyourtv, adapted to Fire OS 8). Your apps on a shelf, no ads. Fire OS won't hand Home to another launcher, so an accessibility service brings this one back whenever Amazon's home appears (rapid Home presses included). Icon-only Inputs / Wi-Fi / Settings pills plus a Smart Home pill; move tiles anywhere; an All apps drawer; opens the screensaver clock after idle minutes, never while something plays. |
+| [`launcher/`](launcher) | **Clean home screen** (from cleanyourtv, adapted to Fire OS 8). Your apps on a shelf, no ads. Fire OS won't hand Home to another launcher, so an accessibility service brings this one back whenever Amazon's home appears (rapid Home presses included). Icon-only Wi-Fi / Settings pills (and Inputs, where the TV lets an app switch them; Fire OS doesn't); move tiles anywhere; an All apps drawer; opens the screensaver clock after idle minutes, never while something plays. |
 | [`smarthome/`](smarthome) | **Smart Home** for the TV, in the style of Apple Home: rooms, favourites, scenes, Kasa and Shelly plugs and sensors (found on the Wi-Fi, re-found when they move), RTSP cameras, and automations on a time, sunrise/sunset, or the **TV turning on or off**, with days, time windows and "turn off after". It also: |
 | | - serves the **phone web app** at `http://<TV address>:8765` (below), which is how it's used: it has no tile or pill on the TV (its TV screens open with `adb shell am start -n com.homecontrol.tv/.MainActivity`) |
 | | - the **screensaver clock**: large clock, date and the weather now and for the next hours (Open-Meteo), dims at night |
