@@ -55,11 +55,9 @@
             android:launchMode="singleTask"
             android:configChanges="keyboard|keyboardHidden|navigation|screenSize|orientation|uiMode"
             android:screenOrientation="landscape">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
+            <!-- No launcher entry: Smart Home is used from the phone page, so it has no tile or pill on the TV. It still
+                 runs everything behind that page (and the screensaver); its TV screens open with
+                 adb shell am start -n com.homecontrol.tv/.MainActivity -->
         </activity>
 
         <activity
