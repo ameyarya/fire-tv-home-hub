@@ -28,7 +28,7 @@ router so the link stays put):
 - **Home**, like the TV app: a summary line, filter pills, scenes, cameras, plugs with live watts, automations.
 - **+** at the top right: add a plug or sensor (find on Wi-Fi, or by address), a camera, a scene, an automation, a room.
 - **✎**: move tiles and whole sections; the order is shared with the TV. In ✎ mode, tap a plug, sensor or camera to rename it, or a scene or automation to edit it.
-- **Remote**: touchpad, Back / Home / Play / Menu, volume, power and typing on the TV.
+- **Remotes** section, **TV**: touchpad, Back / Home / Play / Menu, volume, power and typing on the TV.
 - **Activity**, behind ☰.
 
 Pair a phone once: scan the QR code in Smart Home → Settings → Phone remote, or open `http://<TV address>:8765`

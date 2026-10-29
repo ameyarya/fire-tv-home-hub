@@ -195,7 +195,8 @@ public class MainActivity extends Activity {
                 case "scenes": sceneSection(all); break;
                 case "cameras": cameraSection(all); break;
                 case "plugs": plugSection(all); break;
-                default: automationSection(all);
+                case "automations": automationSection(all); break;
+                default:   // "remotes": the phone page's
             }
         }
         if (all) {

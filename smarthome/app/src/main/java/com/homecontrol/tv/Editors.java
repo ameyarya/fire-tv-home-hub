@@ -194,6 +194,7 @@ final class Editors {
     }
 
     static final java.util.Map<String, String> SECTION_NAMES = new java.util.HashMap<String, String>() {{
+        put("remotes", "Remotes (phone page)");
         put("scenes", "Scenes");
         put("cameras", "Cameras");
         put("plugs", "Plugs & lights");

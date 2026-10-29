@@ -64,6 +64,7 @@
   .sheet.open { display: block; }
   .panel { position: absolute; left: 0; right: 0; bottom: 0; max-width: 560px; margin: 0 auto; background: #111;
            border-radius: 22px 22px 0 0; padding: 10px 16px max(22px, env(safe-area-inset-bottom)); max-height: 92vh; overflow: auto; }
+  #logSheet .panel { height: 50vh; max-height: 50vh; }   /* Activity: half the screen, the list scrolls */
   .grab { width: 40px; height: 5px; border-radius: 3px; background: #48484a; margin: 0 auto 10px; }
   .panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
   .panel-head b { font-size: 18px; }
@@ -156,7 +157,6 @@
   <header>
     <h1>Home</h1>
     <div class="pills">
-      <button class="pill" id="openRemote"><svg><use href="#i-tv"/></svg>Remote</button>
       <button class="pill icon" id="editBtn" aria-label="Move tiles"><svg><use href="#i-edit"/></svg></button>
       <button class="pill icon" id="openLog" aria-label="Activity"><svg><use href="#i-list"/></svg></button>
       <button class="pill icon" id="addBtn" aria-label="Add"><svg><use href="#i-plus"/></svg></button>
@@ -290,7 +290,9 @@ function render() {
   const autos = h.automations.map(a => tile('auto ' + (a.enabled ? 'on' : 'off'), 'i-clock', a.enabled ? 'ON' : 'OFF', a.name,
     a.describe + (a.enabled && a.next ? ' · next ' + a.next : ''), `data-auto="${esc(a.id)}"`, 'automation', a.id));
   // in the shared order (Settings → Section order on the TV, or ▲▼ here in edit mode)
-  const parts = { scenes: () => section('Scenes', scenes, show('scenes'), 'scenes'),
+  const remotes = [tile('', 'i-tv', '', 'TV', 'Tap for the remote', 'data-remote="tv"')];
+  const parts = { remotes: () => section('Remotes', remotes, filter === 'all', 'remotes'),
+    scenes: () => section('Scenes', scenes, show('scenes'), 'scenes'),
     cameras: () => section('Cameras', cams, show('cameras'), 'cameras'),
     plugs: () => section('Plugs & lights', plugs, show('plugs'), 'plugs'),
     automations: () => section('Automations', autos, show('autos'), 'automations') };
@@ -337,7 +339,9 @@ $('#sections').addEventListener('click', e => {
     return;
   }
   buzz();
-  if (t.dataset.dev) {
+  if (t.dataset.remote) {
+    sheet('#remoteSheet', true);
+  } else if (t.dataset.dev) {
     const on = t.dataset.on !== '1';
     t.classList.toggle('on', on); t.dataset.on = on ? 1 : 0; t.querySelector('.badge').textContent = on ? 'ON' : 'OFF';
     post(`device?id=${encodeURIComponent(t.dataset.dev)}&on=${on ? 1 : 0}`).then(r => { if (r && !r.ok) toast('It didn\u2019t answer'); load(); });
@@ -575,7 +579,6 @@ function sheet(id, open) {
   $(id).classList.toggle('open', open);
   if (id === '#remoteSheet') { clearInterval(sheet.t); if (open) { status(); sheet.t = setInterval(status, 3000); } }
 }
-$('#openRemote').onclick = () => sheet('#remoteSheet', true);
 $('#openLog').onclick = () => {
   sheet('#logSheet', true);
   fetch(api + 'activity').then(r => r.json()).then(a => {

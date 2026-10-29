@@ -151,8 +151,11 @@ final class Home {
     final List<Scene> scenes = new ArrayList<>();
     final List<Schedule> schedules = new ArrayList<>();
     final List<PendingOff> pendingOffs = new ArrayList<>();
-    /** The order of the sections, on the TV and the phone page (the TV keeps Favorites first and itself last). */
-    static final List<String> SECTIONS = java.util.Arrays.asList("scenes", "cameras", "plugs", "automations");
+    /**
+     * The order of the sections, on the TV and the phone page (the TV keeps Favorites first and itself last).
+     * "remotes" (the TV remote) is only on the phone page.
+     */
+    static final List<String> SECTIONS = java.util.Arrays.asList("remotes", "scenes", "cameras", "plugs", "automations");
     final List<String> sections = new ArrayList<>(SECTIONS);
     /** For sunrise and sunset automations; NaN until set (Settings → Location, or home.sh location). */
     double latitude = Double.NaN, longitude = Double.NaN;
@@ -388,7 +391,9 @@ final class Home {
                     String k = secs.optString(i);
                     if (SECTIONS.contains(k) && !order.contains(k)) order.add(k);
                 }
-                for (String k : SECTIONS) if (!order.contains(k)) order.add(k);
+                for (String k : SECTIONS) {   // at its usual place, as near as the saved order allows
+                    if (!order.contains(k)) order.add(Math.min(SECTIONS.indexOf(k), order.size()), k);
+                }
                 h.sections.clear();
                 h.sections.addAll(order);
             }
