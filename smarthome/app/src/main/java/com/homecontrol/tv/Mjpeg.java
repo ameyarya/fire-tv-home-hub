@@ -24,6 +24,22 @@ final class Mjpeg {
         return url.regionMatches(true, 0, "http://", 0, 7) || url.regionMatches(true, 0, "https://", 0, 8);
     }
 
+    /** How long a doorbell ring may show the camera, in seconds. */
+    static boolean isDoorbellSeconds(int seconds) {
+        return seconds == 10 || seconds == 30 || seconds == 60 || seconds == 120;
+    }
+
+    /** Time left as m:ss, rounded up so it reaches 0:00 only as the picture closes. */
+    static String countdown(long millisLeft) {
+        long seconds = Math.max(0, (millisLeft + 999) / 1000);
+        return seconds / 60 + ":" + (seconds % 60 < 10 ? "0" : "") + seconds % 60;
+    }
+
+    /** A doorbell ring: a small picture over something playing, else full screen. The overlay can't play RTSP. */
+    static boolean doorbellPicture(boolean screenOn, boolean playing, String url) {
+        return screenOn && playing && isStream(url);
+    }
+
     /** Reads JPEGs from a multipart stream until it ends or frames says stop. */
     static void read(InputStream in, Frames frames) throws IOException {
         ByteArrayOutputStream jpeg = new ByteArrayOutputStream(64 * 1024);

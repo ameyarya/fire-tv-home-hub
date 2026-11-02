@@ -183,6 +183,8 @@ final class RemoteServer {
                 return;
             }
             stream(CameraRelay.get(app, cam), out);
+        } else if (method.equals("POST") && action.equals("doorbell")) {
+            answer(out, Doorbell.ring(app, param(query, "id")));
         } else if (method.equals("POST") && action.equals("camera-show")) {
             answer(out, HomeApi.showCamera(app, param(query, "id")));
         } else if (method.equals("POST") && action.equals("find-devices")) {

@@ -33,12 +33,17 @@ import java.util.List;
 public class CameraActivity extends Activity {
 
     static final String EXTRA_ID = "camera";
+    /** Close by itself after this long (a doorbell ring), unless someone presses a key on the remote. */
+    static final String EXTRA_CLOSE_AFTER_MS = "closeAfterMs";
+
+    private final android.os.Handler closer = new android.os.Handler(android.os.Looper.getMainLooper());
 
     private ExoPlayer player;
     private PlayerView view;
     private ImageView picture;
     private volatile Thread mjpegThread;
-    private TextView name, message;
+    private TextView name, message, timer;
+    private long closeAt;
     private List<Home.Camera> cameras;
     private int index;
     private String state = "connecting";
@@ -48,10 +53,13 @@ public class CameraActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_camera);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        setTurnScreenOn(true);
+        setShowWhenLocked(true);
         view = findViewById(R.id.player);
         picture = findViewById(R.id.mjpeg);
         name = findViewById(R.id.camName);
         message = findViewById(R.id.camMessage);
+        timer = findViewById(R.id.camTimer);
         cameras = Storage.get(this).cameras;
         String id = getIntent().getStringExtra(EXTRA_ID);
         for (int i = 0; i < cameras.size(); i++) if (cameras.get(i).id.equals(id)) index = i;
@@ -65,10 +73,27 @@ public class CameraActivity extends Activity {
             return;
         }
         play();
+        long closeAfter = getIntent().getLongExtra(EXTRA_CLOSE_AFTER_MS, 0);
+        if (closeAfter > 0) {
+            closeAt = android.os.SystemClock.uptimeMillis() + closeAfter;
+            timer.setVisibility(View.VISIBLE);
+            tick();
+        }
+    }
+
+    private void tick() {
+        long left = closeAt - android.os.SystemClock.uptimeMillis();
+        if (left <= 0) {
+            finish();
+            return;
+        }
+        timer.setText(Mjpeg.countdown(left));
+        closer.postDelayed(this::tick, 250);
     }
 
     @Override
     protected void onStop() {
+        closer.removeCallbacksAndMessages(null);
         release();
         super.onStop();
     }
@@ -177,6 +202,8 @@ public class CameraActivity extends Activity {
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
+        closer.removeCallbacksAndMessages(null);   // someone's watching
+        timer.setVisibility(View.GONE);
         if (cameras.size() > 1 && (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT || keyCode == KeyEvent.KEYCODE_DPAD_LEFT)) {
             index = (index + (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT ? 1 : cameras.size() - 1)) % cameras.size();
             play();

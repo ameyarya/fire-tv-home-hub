@@ -69,6 +69,22 @@ public class MjpegTest {
     }
 
     @Test
+    public void onlyTheOfferedDoorbellTimes() {
+        for (int ok : new int[]{10, 30, 60, 120}) assertTrue(Mjpeg.isDoorbellSeconds(ok));
+        for (int no : new int[]{0, -10, 45, 121}) assertFalse(Mjpeg.isDoorbellSeconds(no));
+    }
+
+    @Test
+    public void countdownRoundsUpAndStopsAtZero() {
+        assertEquals("2:00", Mjpeg.countdown(120_000));
+        assertEquals("1:00", Mjpeg.countdown(59_001));
+        assertEquals("0:10", Mjpeg.countdown(9_500));
+        assertEquals("0:01", Mjpeg.countdown(1));
+        assertEquals("0:00", Mjpeg.countdown(0));
+        assertEquals("0:00", Mjpeg.countdown(-500));
+    }
+
+    @Test
     public void tellsStreamsFromRtspAddresses() {
         assertTrue(Mjpeg.isStream("http://192.168.1.194:81/stream"));
         assertTrue(Mjpeg.isStream("HTTPS://cam/stream"));

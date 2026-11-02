@@ -420,7 +420,7 @@ $('#openSettings').onclick = async () => {
   sheet('#setSheet', true);
   let s;
   try { s = await fetch(api + 'settings').then(r => r.json()); } catch (e) { f.querySelector('.note').textContent = 'The TV isn\u2019t answering'; return; }
-  const x = { screensaver: s.screensaver, fahrenheit: s.fahrenheit, awake: s.awake, code: s.code, loc: s.location ? s.location.lat + ',' + s.location.lon : '' };
+  const x = { doorbell: s.doorbell, screensaver: s.screensaver, fahrenheit: s.fahrenheit, awake: s.awake, code: s.code, loc: s.location ? s.location.lat + ',' + s.location.lon : '' };
   const cities = s.zones.map(z => `<optgroup label="${esc(z.zone)}">${z.cities.map(c => `<option value="${c.lat},${c.lon}">${esc(c.name)}</option>`).join('')}</optgroup>`).join('');
   const here = s.location && !s.zones.some(z => z.cities.some(c => c.lat + ',' + c.lon === x.loc))
     ? `<option value="${x.loc}">${esc(s.location.name || x.loc)}</option>` : '';
@@ -428,6 +428,8 @@ $('#openSettings').onclick = async () => {
     f.innerHTML = `<div class="grab"></div><div class="panel-head"><b>Settings</b></div>
       <label>Location (sunrise, sunset and weather)</label>
       <select id="sLoc">${s.location ? '' : '<option value="">Not set</option>'}${here}${cities}</select>
+      <label>Show the door camera on a ring for</label>
+      <select id="sBell">${[[10, '10 seconds'], [30, '30 seconds'], [60, '1 minute'], [120, '2 minutes']].map(([v, t]) => `<option value="${v}" ${v === x.doorbell ? 'selected' : ''}>${t}</option>`).join('')}</select>
       <label>Screensaver</label>
       <select id="sSaver">${[0, 2, 5, 10, 20, 30].map(m => `<option value="${m}" ${m === x.screensaver ? 'selected' : ''}>${m ? 'Clock after ' + m + ' min with nothing playing' : 'Off'}</option>`).join('')}</select>
       <label>Temperature</label>
@@ -442,12 +444,12 @@ $('#openSettings').onclick = async () => {
   draw();
   f.onclick = async e => {
     const b = e.target.closest('button, .sw'); if (!b) return;
-    x.loc = $('#sLoc').value; x.screensaver = +$('#sSaver').value; x.code = $('#sCode').value.trim();
+    x.loc = $('#sLoc').value; x.doorbell = +$('#sBell').value; x.screensaver = +$('#sSaver').value; x.code = $('#sCode').value.trim();
     if (b.dataset.u) { x.fahrenheit = b.dataset.u === 'f'; draw(); }
     else if (b.id === 'sAwake') { x.awake = !x.awake; draw(); }
     else if (b.id === 'sCancel') sheet('#setSheet', false);
     else if (b.id === 'sSave') {
-      const out = { screensaver: x.screensaver, fahrenheit: x.fahrenheit, awake: x.awake, code: x.code };
+      const out = { doorbell: x.doorbell, screensaver: x.screensaver, fahrenheit: x.fahrenheit, awake: x.awake, code: x.code };
       if (x.loc) { const [lat, lon] = x.loc.split(','); out.lat = +lat; out.lon = +lon; }
       const r = await post('settings', JSON.stringify(out));
       if (r && r.ok) { sheet('#setSheet', false); toast('Saved'); load(); }

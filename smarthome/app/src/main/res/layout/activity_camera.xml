@@ -35,6 +35,22 @@
         android:fontFamily="@font/outfit" />
 
     <TextView
+        android:id="@+id/camTimer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|end"
+        android:layout_margin="32dp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:background="@drawable/glass_panel"
+        android:textColor="#FFFFFFFF"
+        android:textSize="16sp"
+        android:fontFamily="@font/outfit"
+        android:visibility="gone" />
+
+    <TextView
         android:id="@+id/camMessage"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

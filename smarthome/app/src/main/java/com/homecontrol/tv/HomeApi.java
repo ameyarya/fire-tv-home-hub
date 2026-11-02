@@ -464,6 +464,7 @@ final class HomeApi {
         boolean set = !Double.isNaN(h.latitude);
         o.put("location", set ? new JSONObject().put("name", Places.nearest(h.latitude, h.longitude))
                 .put("lat", h.latitude).put("lon", h.longitude) : JSONObject.NULL);
+        o.put("doorbell", Doorbell.seconds(c));
         o.put("screensaver", Idle.minutes(c)).put("fahrenheit", Idle.fahrenheit(c))
                 .put("code", Remote.code(c)).put("awake", Remote.keepAwake(c));
         JSONArray zones = new JSONArray();
@@ -488,6 +489,7 @@ final class HomeApi {
             return "not settings";
         }
         if (o.has("code") && !Remote.setCode(c, o.optString("code"))) return "The code is 4 digits";
+        if (o.has("doorbell") && !Doorbell.setSeconds(c, o.optInt("doorbell"))) return "Choose 10 seconds, 30 seconds, 1 minute or 2 minutes";
         if (o.has("screensaver") && !Idle.set(c, o.optInt("screensaver"))) return "The clean launcher (which opens the clock) isn't installed";
         if (o.has("fahrenheit")) Idle.setFahrenheit(c, o.optBoolean("fahrenheit"));
         if (o.has("awake")) Remote.setKeepAwake(c, o.optBoolean("awake"));
