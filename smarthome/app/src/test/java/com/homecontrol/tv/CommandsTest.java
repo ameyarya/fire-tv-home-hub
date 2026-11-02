@@ -131,7 +131,9 @@ public class CommandsTest {
         assertNull(run("ADD_CAMERA", "name", "living room", "url", "rtsp://viewer:p%40ss@192.168.1.249:554/live0"));
         assertEquals(1, h.cameras.size());
         assertEquals("rtsp://viewer:p%40ss@192.168.1.249:554/live0", h.cameras.get(0).url);
-        assertTrue(run("ADD_CAMERA", "name", "x", "url", "http://192.168.1.249").contains("rtsp://"));
+        assertTrue(run("ADD_CAMERA", "name", "x", "url", "192.168.1.249").contains("rtsp://"));
+        assertNull(run("ADD_CAMERA", "name", "Door", "url", "http://192.168.1.194:81/stream"));
+        assertEquals("http://192.168.1.194:81/stream", h.cameras.get(1).url);
     }
 
     @Test

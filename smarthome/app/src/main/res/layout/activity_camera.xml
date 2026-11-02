@@ -12,6 +12,14 @@
         app:use_controller="false"
         app:resize_mode="fit" />
 
+    <ImageView
+        android:id="@+id/mjpeg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:contentDescription="@null"
+        android:scaleType="fitCenter"
+        android:visibility="gone" />
+
     <TextView
         android:id="@+id/camName"
         android:layout_width="wrap_content"

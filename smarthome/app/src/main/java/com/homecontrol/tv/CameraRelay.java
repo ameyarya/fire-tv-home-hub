@@ -23,6 +23,9 @@ import androidx.media3.exoplayer.ExoPlayer;
 import androidx.media3.exoplayer.rtsp.RtspMediaSource;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
@@ -33,7 +36,7 @@ import java.util.Map;
  * screen, and turns frames into JPEGs, up to ~8 a second, for an MJPEG stream any browser shows in an <img>.
  *
  * It uses the camera's smaller second stream (/live1 for /live0) to keep it light, has no sound, and stops a
- * few seconds after the last viewer leaves.
+ * few seconds after the last viewer leaves. An MJPEG camera is already JPEGs, so those frames pass straight through.
  */
 final class CameraRelay {
 
@@ -45,6 +48,7 @@ final class CameraRelay {
     private final String main0;   // the camera's own stream, the fallback
     private final Handler main = new Handler(Looper.getMainLooper());
     private HandlerThread frames;
+    private volatile Thread mjpegThread;
     private ExoPlayer player;
     private ImageReader reader;
     private int width, height;
@@ -86,7 +90,7 @@ final class CameraRelay {
 
     synchronized void join() {
         viewers++;
-        if (player == null && frames == null) main.post(this::start);
+        if (player == null && frames == null && mjpegThread == null) main.post(this::start);
     }
 
     synchronized void leave() {
@@ -115,6 +119,10 @@ final class CameraRelay {
 
     private void start() {
         state = "connecting " + url.replaceAll("//[^@/]*@", "//");   // never the login
+        if (Mjpeg.isStream(url)) {
+            startMjpeg();
+            return;
+        }
         frames = new HandlerThread("camera-frames");
         frames.start();
         player = new ExoPlayer.Builder(app).build();
@@ -151,6 +159,44 @@ final class CameraRelay {
                 .createMediaSource(MediaItem.fromUri(Uri.parse(url))));
         player.setPlayWhenReady(true);
         player.prepare();
+    }
+
+    private void startMjpeg() {
+        Thread thread = new Thread(() -> {
+            Thread self = Thread.currentThread();
+            while (mjpegThread == self) {
+                HttpURLConnection c = null;
+                try {
+                    c = (HttpURLConnection) new URL(url).openConnection();
+                    c.setConnectTimeout(8000);
+                    c.setReadTimeout(8000);
+                    Mjpeg.read(c.getInputStream(), j -> {
+                        long now = SystemClock.uptimeMillis();
+                        if (now - lastFrameAt >= FRAME_MS) {
+                            lastFrameAt = now;
+                            synchronized (CameraRelay.this) {
+                                jpeg = j;
+                                seq++;
+                                state = "playing MJPEG";
+                                CameraRelay.this.notifyAll();
+                            }
+                        }
+                        return mjpegThread == self;
+                    });
+                } catch (IOException e) {
+                    state = "error: " + e.getClass().getSimpleName();
+                } finally {
+                    if (c != null) c.disconnect();
+                }
+                try {
+                    Thread.sleep(2000);
+                } catch (InterruptedException e) {
+                    return;
+                }
+            }
+        }, "camera-mjpeg");
+        mjpegThread = thread;
+        thread.start();
     }
 
     private void surface(int w, int h) {
@@ -226,6 +272,11 @@ final class CameraRelay {
     }
 
     private synchronized void stop() {
+        Thread thread = mjpegThread;
+        if (thread != null) {
+            mjpegThread = null;
+            thread.interrupt();
+        }
         Runnable r = () -> {
             if (player != null) {
                 player.release();

@@ -401,7 +401,7 @@ final class HomeApi {
         if (name.isEmpty()) return "Give it a name";
         if (host.isEmpty()) return "Enter the camera's address";
         String port = host.contains(":") ? "" : ":554";
-        String url = user.isEmpty() ? "rtsp://" + host + port + "/live0"
+        String url = Mjpeg.isStream(host) ? host : user.isEmpty() ? "rtsp://" + host + port + "/live0"
                 : "rtsp://" + enc(user) + ":" + enc(pass) + "@" + host + port + "/live0";
         return onMain(() -> {
             Storage.get(c).cameras.add(new Home.Camera(Home.newId(), name, url));

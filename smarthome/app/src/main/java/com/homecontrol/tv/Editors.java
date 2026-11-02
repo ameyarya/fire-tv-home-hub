@@ -162,6 +162,11 @@ final class Editors {
 
     /** Name, stream username and password for a camera at host; existing: change those of that camera. */
     void cameraDetails(String host, Home.Camera existing) {
+        if (Mjpeg.isStream(host)) {   // the whole stream address, with no login
+            p.askText(a.getString(R.string.camera_name), existing != null ? existing.name : "", "Front door",
+                    name -> saveCamera(existing, name, host));
+            return;
+        }
         p.askText(a.getString(R.string.camera_name), existing != null ? existing.name : "", "Living room", name ->
                 p.askText("Stream username (type - if it has none)", "", "from the camera's RTSP settings", user -> {
                     if (user.equals("-")) {
@@ -229,7 +234,7 @@ final class Editors {
                 case 0: pickRoom(c.roomId, id -> { c.roomId = id; save(); }); break;
                 case 1: c.favorite = !c.favorite; save(); break;
                 case 2: p.askText(a.getString(R.string.rename), c.name, "", n -> { c.name = n; save(); }); break;
-                case 3: p.askText("Camera address", Commands.hostOf(c.url).replaceAll(":554$", ""), "", h -> cameraDetails(h.trim(), c)); break;
+                case 3: p.askText("Camera address", Mjpeg.isStream(c.url) ? c.url : Commands.hostOf(c.url).replaceAll(":554$", ""), "", h -> cameraDetails(h.trim(), c)); break;
                 case 4: case 5: move("camera", c.id, i == 4 ? -1 : 1); break;
                 default: home().cameras.remove(c); save();
             }

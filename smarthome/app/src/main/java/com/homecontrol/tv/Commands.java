@@ -210,8 +210,9 @@ final class Commands {
         String name = trim(a.str("name"));
         String url = trim(a.str("url"));
         if (name.isEmpty()) return "a camera needs a name";
-        if (!url.toLowerCase(Locale.ROOT).startsWith("rtsp://") || url.length() <= "rtsp://".length()) {
-            return "the camera address starts with rtsp://";
+        boolean rtsp = url.toLowerCase(Locale.ROOT).startsWith("rtsp://") && url.length() > "rtsp://".length();
+        if (!rtsp && !Mjpeg.isStream(url)) {
+            return "the camera address starts with rtsp:// or, for an MJPEG stream, http://";
         }
         Home.Camera existing = null;
         for (Home.Camera c : h.cameras) if (c.name.equalsIgnoreCase(name)) existing = c;

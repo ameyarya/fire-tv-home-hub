@@ -1,11 +1,14 @@
 package com.homecontrol.tv;
 
 import android.app.Activity;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -17,11 +20,14 @@ import androidx.media3.exoplayer.rtsp.RtspMediaSource;
 import androidx.media3.ui.PlayerView;
 
 import java.io.FileDescriptor;
+import java.io.IOException;
 import java.io.PrintWriter;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.List;
 
 /**
- * Full-screen live view of one camera, straight from its RTSP stream on the local network.
+ * Full-screen live view of one camera, straight from its RTSP or MJPEG stream on the local network.
  * Left and Right switch between cameras; Back returns to the grid.
  */
 public class CameraActivity extends Activity {
@@ -30,6 +36,8 @@ public class CameraActivity extends Activity {
 
     private ExoPlayer player;
     private PlayerView view;
+    private ImageView picture;
+    private volatile Thread mjpegThread;
     private TextView name, message;
     private List<Home.Camera> cameras;
     private int index;
@@ -41,6 +49,7 @@ public class CameraActivity extends Activity {
         setContentView(R.layout.activity_camera);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         view = findViewById(R.id.player);
+        picture = findViewById(R.id.mjpeg);
         name = findViewById(R.id.camName);
         message = findViewById(R.id.camMessage);
         cameras = Storage.get(this).cameras;
@@ -70,6 +79,10 @@ public class CameraActivity extends Activity {
         name.setText(cam.name);
         showMessage(getString(R.string.camera_connecting));
         state = "connecting";
+        if (Mjpeg.isStream(cam.url)) {
+            playMjpeg(cam.url);
+            return;
+        }
         player = new ExoPlayer.Builder(this).build();
         view.setPlayer(player);
         player.addListener(new Player.Listener() {
@@ -97,12 +110,64 @@ public class CameraActivity extends Activity {
         player.prepare();
     }
 
+    /** Reads the stream on its own thread, reconnecting if it drops, and shows the newest picture. */
+    private void playMjpeg(String url) {
+        picture.setImageDrawable(null);
+        picture.setVisibility(View.VISIBLE);
+        Thread thread = new Thread(() -> {
+            Thread self = Thread.currentThread();
+            while (mjpegThread == self) {
+                HttpURLConnection c = null;
+                try {
+                    c = (HttpURLConnection) new URL(url).openConnection();
+                    c.setConnectTimeout(8000);
+                    c.setReadTimeout(8000);
+                    Mjpeg.read(c.getInputStream(), jpeg -> {
+                        Bitmap frame = BitmapFactory.decodeByteArray(jpeg, 0, jpeg.length);
+                        if (frame != null) runOnUiThread(() -> showFrame(self, frame));
+                        return mjpegThread == self;
+                    });
+                } catch (IOException e) {
+                    if (mjpegThread == self) {
+                        runOnUiThread(() -> {
+                            if (mjpegThread != self) return;
+                            state = "error";
+                            showMessage(getString(R.string.camera_error, String.valueOf(e.getMessage())));
+                        });
+                    }
+                } finally {
+                    if (c != null) c.disconnect();
+                }
+                try {
+                    Thread.sleep(2000);
+                } catch (InterruptedException e) {
+                    return;
+                }
+            }
+        }, "camera-mjpeg");
+        mjpegThread = thread;
+        thread.start();
+    }
+
+    private void showFrame(Thread from, Bitmap frame) {
+        if (mjpegThread != from) return;
+        state = "playing";
+        message.setVisibility(View.GONE);
+        picture.setImageBitmap(frame);
+    }
+
     private void showMessage(String text) {
         message.setText(text);
         message.setVisibility(View.VISIBLE);
     }
 
     private void release() {
+        Thread thread = mjpegThread;
+        if (thread != null) {
+            mjpegThread = null;
+            thread.interrupt();
+            picture.setVisibility(View.GONE);
+        }
         if (player != null) {
             view.setPlayer(null);
             player.release();

@@ -479,7 +479,7 @@ addForm.addEventListener('click', async e => {
   } else if (kind === 'camera') {
     addForm.innerHTML = `<div class="grab"></div><div class="panel-head"><b>Add a camera</b></div>
       <label>Name</label><input type="text" id="cName" placeholder="Living room" maxlength="40">
-      <label>Address</label><input type="text" id="cHost" placeholder="192.168.1.60" inputmode="decimal">
+      <label>Address</label><input type="text" id="cHost" placeholder="192.168.1.60, or http://… for an MJPEG stream" autocapitalize="off">
       <label>Stream username</label><input type="text" id="cUser" placeholder="from the camera's RTSP settings" autocapitalize="off" autocomplete="off">
       <label>Stream password</label><input type="text" id="cPass" style="-webkit-text-security:disc" autocapitalize="off" autocomplete="off">
       <p class="note">Leave the username empty if the camera has none. The login stays on the TV; open the camera there to check the picture.</p>
