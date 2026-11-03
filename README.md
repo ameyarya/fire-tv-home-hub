@@ -22,7 +22,7 @@ debloat tooling come from **[cleanyourtv](https://github.com/Gathin23/cleanyourt
 
 ## The phone web app
 
-Smart Home runs a small web server on the TV, at **`http://<TV address>:8765`** (give the TV a fixed address in your
+Smart Home runs a small web server on the TV, at **`http://home.local:8765`** or **`http://<TV address>:8765`** (give the TV a fixed address in your
 router so the link stays put):
 
 - **Home**, like the TV app: a summary line, filter pills, scenes, cameras, plugs with live watts, automations.

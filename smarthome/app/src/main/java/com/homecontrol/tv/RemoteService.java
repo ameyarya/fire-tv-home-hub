@@ -16,6 +16,7 @@ public class RemoteService extends Service {
 
     private static final String CHANNEL = "remote";
     private RemoteServer server;
+    private HomeName name;
     private android.os.PowerManager.WakeLock cpu;
     private android.net.wifi.WifiManager.WifiLock wifi;
 
@@ -39,6 +40,8 @@ public class RemoteService extends Service {
         startForeground(1, n);
         server = new RemoteServer(this);
         server.start();
+        name = new HomeName(this);   // http://home.local:8765
+        name.start();
     }
 
     @Override
@@ -76,6 +79,7 @@ public class RemoteService extends Service {
     public void onDestroy() {
         awake(false);
         server.stop();
+        name.stop();
         super.onDestroy();
     }
 
