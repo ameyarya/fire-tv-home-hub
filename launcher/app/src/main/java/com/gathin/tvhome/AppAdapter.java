@@ -72,6 +72,9 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         final String name;
         /** Ambient glow colour; 0 until sampled from the banner, or the card's accent from the start. */
         int ambient;
+        /** The tile made from the icon when the app has no banner (see filledTile), for this tile size. */
+        Drawable filled;
+        int filledW, filledH;
 
         Entry(String label, ComponentName component, Drawable banner, Drawable icon) {
             this(APP, label, component, banner, icon, null, 0);
@@ -277,10 +280,17 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             h.banner.setVisibility(View.VISIBLE);
             h.icon.setVisibility(View.GONE);
             h.label.setVisibility(View.GONE);
+        } else if (filled(e, h.card.getLayoutParams().width, h.card.getLayoutParams().height) != null) {
+            // No banner, but the icon has its own background (Silk, Appstore, Amazon Kids): it fills the tile.
+            h.banner.setImageDrawable(e.filled);
+            h.banner.clearColorFilter();
+            h.banner.setVisibility(View.VISIBLE);
+            h.icon.setVisibility(View.GONE);
+            h.label.setVisibility(View.GONE);
         } else {
-            // No banner: make one, so every tile is full-colour art like the rest (the Apple TV look).
-            // A gradient in the icon's own colour, the icon large in the middle; the name shows under the
-            // tile on focus, as for every other app.
+            // No banner and a see-through icon: make one, so every tile is full-colour art like the rest (the
+            // Apple TV look). A gradient in the icon's own colour, the icon large in the middle; the name shows
+            // under the tile on focus, as for every other app.
             int color = ambientColorAt(position);
             h.banner.setImageDrawable(madeBanner(color));
             h.banner.clearColorFilter();
@@ -386,6 +396,84 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         Entry e = items.get(position);
         if (e.ambient == 0) e.ambient = vividColor(e.banner != null ? e.banner : e.icon);
         return e.ambient;
+    }
+
+    /** The entry's filled tile at this size, made once and kept; null when its icon can't fill one. */
+    private Drawable filled(Entry e, int w, int h) {
+        if (e.kind != Entry.APP && e.kind != Entry.CARD || e.icon == null || w <= 0 || h <= 0) return null;
+        if (e.filledW != w || e.filledH != h) {
+            Bitmap b = filledTile(e.icon, w, h);
+            e.filled = b == null ? null : new android.graphics.drawable.BitmapDrawable(ctx.getResources(), b);
+            e.filledW = w;
+            e.filledH = h;
+        }
+        return e.filled;
+    }
+
+    /**
+     * A tile filled by an app's own icon, for apps with no banner whose icon is a square with its own background:
+     * the icon at the tile's full height, its left and right edge colours carried out to the tile's sides, so it
+     * reads as one piece of art like a banner. Null when the icon is see-through at its edges (a bare glyph), which
+     * keeps the made banner with the icon in the middle.
+     */
+    static Bitmap filledTile(Drawable icon, int w, int h) {
+        int s = Math.round(h * 1.2f);   // taller than the tile, so rounded or shaded icon corners fall outside it
+        Bitmap sq = Bitmap.createBitmap(s, s, Bitmap.Config.ARGB_8888);
+        Rect keep = icon.copyBounds();
+        icon.setBounds(0, 0, s, s);
+        icon.draw(new Canvas(sq));
+        icon.setBounds(keep);
+        int in = 2;   // the icon's own outermost columns, where only its background is
+        int solid = 0, rows = 0;
+        for (int y = s / 10; y < s - s / 10; y++, rows++) {
+            if (Color.alpha(sq.getPixel(in, y)) > 245 && Color.alpha(sq.getPixel(s - 1 - in, y)) > 245) solid++;
+        }
+        if (solid < rows * 0.9f) {
+            sq.recycle();
+            return null;
+        }
+        Bitmap out = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        Canvas c = new Canvas(out);
+        c.drawColor(sq.getPixel(in, s / 2));
+        int left = (w - s) / 2, top = (h - s) / 2;
+        android.graphics.Paint p = new android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG);
+        c.drawBitmap(edge(sq, in), null, new Rect(0, top, left + s / 2, top + s), p);
+        c.drawBitmap(edge(sq, s - 1 - in), null, new Rect(left + s / 2, top, w, top + s), p);
+        // The icon's sides fade into that fill, so no seam shows where its own shading differs.
+        Canvas mask = new Canvas(sq);
+        android.graphics.Paint fade = new android.graphics.Paint();
+        float f = 0.08f * s;
+        fade.setShader(new android.graphics.LinearGradient(in, 0, s - in, 0,
+                new int[]{0, 0xFF000000, 0xFF000000, 0},
+                new float[]{0, f / (s - 2 * in), 1 - f / (s - 2 * in), 1}, android.graphics.Shader.TileMode.CLAMP));
+        fade.setXfermode(new android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.DST_IN));
+        mask.drawRect(0, 0, s, s, fade);
+        c.drawBitmap(sq, new Rect(in, 0, s - in, s), new Rect(left + in, top, left + s - in, top + s), p);
+        sq.recycle();
+        return out;
+    }
+
+    /**
+     * One column of the icon, averaged over nearby rows, so a stray bit of logo at the edge can't streak sideways;
+     * the rows near the corners take the colour from further in, past any rounding or shading there.
+     */
+    private static Bitmap edge(Bitmap sq, int x) {
+        int s = sq.getHeight(), r = Math.max(1, s / 12), lo = s * 15 / 100, hi = s - 1 - lo;
+        int[] col = new int[s], out = new int[s];
+        sq.getPixels(col, 0, 1, x, 0, 1, s);
+        for (int y = 0; y < lo; y++) col[y] = col[lo];
+        for (int y = hi + 1; y < s; y++) col[y] = col[hi];
+        for (int y = 0; y < s; y++) {
+            int a = 0, red = 0, g = 0, b = 0, n = 0;
+            for (int k = Math.max(0, y - r); k <= Math.min(s - 1, y + r); k++, n++) {
+                a += Color.alpha(col[k]);
+                red += Color.red(col[k]);
+                g += Color.green(col[k]);
+                b += Color.blue(col[k]);
+            }
+            out[y] = Color.argb(a / n, red / n, g / n, b / n);
+        }
+        return Bitmap.createBitmap(out, 1, s, Bitmap.Config.ARGB_8888);
     }
 
     /** Background for an app without a banner: its colour, deepening towards the bottom right. */
