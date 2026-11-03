@@ -69,8 +69,7 @@
   #motionBanner { all: unset; display: none; position: fixed; top: calc(env(safe-area-inset-top) + 10px); left: 50%; transform: translateX(-50%);
     z-index: 20; padding: 9px 16px; border-radius: 999px; background: #1d1d20; color: #fff; font-size: 14px; white-space: nowrap;
     box-shadow: 0 4px 18px rgb(0 0 0 / .5); cursor: pointer; }
-  #motionBanner i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; background: #ff453a; }
-  #motionBanner.saving i { background: #ffd60a; } #motionBanner.ready i { background: #30d158; }
+  #motionBanner i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; background: #ff9f0a; }
   #motionPlayer { width: 100%; border-radius: 12px; background: #000; margin-bottom: 12px; display: none; }
   .clips { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
   .clips > div { position: relative; font-size: 13px; color: var(--dim); }
@@ -449,33 +448,38 @@ async function showClips(id, refresh) {
     toast('Recording deleted');
   });
 }
-// A banner for motion at the door: recording, then saving, then ready. Checks every few seconds
-// while the page is open, and updates the Recordings list when a new clip is done.
-const motion = { base: '', cam: null, newest: undefined, readyUntil: 0, checkedSetup: 0 };
+// One notice when the page opens: the newest motion clip, if it's new since the last visit.
+// Tapping it opens the door camera with its recordings. It doesn't keep checking.
+const motion = { cam: null };
+function seenMotion(start) { try { localStorage.setItem('seenMotion', start); } catch (e) {} }
+function ago(when) {
+  const m = Math.round((Date.now() - when) / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return m + (m === 1 ? ' min ago' : ' mins ago');
+  const h = Math.round(m / 60);
+  if (h < 24) return h + (h === 1 ? ' hour ago' : ' hours ago');
+  const d = Math.round(h / 24);
+  return d + (d === 1 ? ' day ago' : ' days ago');
+}
 async function checkMotion() {
-  if (document.hidden) return;
   const banner = $('#motionBanner');
   try {
-    if (!motion.base || Date.now() - motion.checkedSetup > 60000) {   // a changed link or camera shows up within a minute
-      motion.checkedSetup = Date.now();
-      motion.base = (await fetch(api + 'settings').then(r => r.json())).clips;
-      motion.cam = (await fetch(api + 'home').then(r => r.json())).cameras.find(c => c.clips);
-    }
-    if (!motion.base || !motion.cam) { banner.style.display = 'none'; return; }
-    const s = await fetch(motion.base + '/status.json', { signal: AbortSignal.timeout(2500) }).then(r => r.json());
-    const fresh = motion.newest !== undefined && s.newest && s.newest !== motion.newest;
-    if (s.newest !== motion.newest && motion.newest !== undefined && watching === motion.cam.id) showClips(watching, true);
-    motion.newest = s.newest;
-    if (fresh) motion.readyUntil = Date.now() + 8000;
-    if (s.state === 'recording') { banner.className = ''; banner.innerHTML = `<i></i>Something moved at ${esc(motion.cam.name)} · recording ${s.seconds}s`; }
-    else if (s.state === 'saving') { banner.className = 'saving'; banner.innerHTML = '<i></i>Saving the recording…'; }
-    else if (Date.now() < motion.readyUntil) { banner.className = 'ready'; banner.innerHTML = '<i></i>New recording ready'; }
-    else { banner.style.display = 'none'; return; }
+    const base = (await fetch(api + 'settings').then(r => r.json())).clips;
+    motion.cam = (await fetch(api + 'home').then(r => r.json())).cameras.find(c => c.clips);
+    if (!base || !motion.cam) return;
+    const clips = await fetch(base + '/clips.json', { signal: AbortSignal.timeout(6000) }).then(r => r.json());
+    let seen = null;
+    try { seen = localStorage.getItem('seenMotion'); } catch (e) {}
+    const newest = clips[0];
+    if (!newest || newest.start === seen) return;
+    seenMotion(newest.start);
+    if (seen === null && Date.now() - new Date(newest.start) > 86400000) return;   // first visit: skip old news
+    banner.innerHTML = `<i></i>New motion at ${esc(motion.cam.name)} ${ago(new Date(newest.start))}`;
     banner.style.display = 'block';
-  } catch (e) { banner.style.display = 'none'; }
+    setTimeout(() => { banner.style.display = 'none'; }, 10000);
+  } catch (e) {}
 }
-$('#motionBanner').onclick = () => { if (motion.cam) { motion.readyUntil = 0; $('#motionBanner').style.display = 'none'; watch(motion.cam.id, motion.cam.name); } };
-setInterval(checkMotion, 3000);
+$('#motionBanner').onclick = () => { $('#motionBanner').style.display = 'none'; if (motion.cam) watch(motion.cam.id, motion.cam.name); };
 setTimeout(checkMotion, 500);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) checkMotion(); });
 
@@ -526,6 +530,9 @@ $('#openSettings').onclick = async () => {
   try { s = await fetch(api + 'settings').then(r => r.json()); } catch (e) { f.querySelector('.note').textContent = 'The TV isn\u2019t answering'; return; }
   const x = { clips: s.clips, doorbell: s.doorbell, screensaver: s.screensaver, fahrenheit: s.fahrenheit, awake: s.awake, code: s.code, loc: s.location ? s.location.lat + ',' + s.location.lon : '' };
   const cities = s.zones.map(z => `<optgroup label="${esc(z.zone)}">${z.cities.map(c => `<option value="${c.lat},${c.lon}">${esc(c.name)}</option>`).join('')}</optgroup>`).join('');
+  const rec = {};   // the recorder's own switch, changed straight away rather than on Save
+  if (s.clips) fetch(s.clips + '/status.json', { signal: AbortSignal.timeout(4000) }).then(r => r.json())
+    .then(st => { rec.on = st.recording_on !== false; keep(); draw(); }).catch(() => {});
   const here = s.location && !s.zones.some(z => z.cities.some(c => c.lat + ',' + c.lon === x.loc))
     ? `<option value="${x.loc}">${esc(s.location.name || x.loc)}</option>` : '';
   function draw() {
@@ -536,6 +543,7 @@ $('#openSettings').onclick = async () => {
       <select id="sBell">${[[10, '10 seconds'], [30, '30 seconds'], [60, '1 minute'], [120, '2 minutes']].map(([v, t]) => `<option value="${v}" ${v === x.doorbell ? 'selected' : ''}>${t}</option>`).join('')}</select>
       <label>Motion clips link, from the recorder on the Mac</label>
       <input type="text" id="sClips" value="${esc(x.clips)}" placeholder="http://192.168.1.50:8766/…" autocapitalize="off" autocomplete="off">
+      ${rec.on === undefined ? '' : `<div class="switch-row"><span>Motion recording<br><small class="note">${rec.on ? 'Saves a clip when something moves at the door' : 'Off: nothing is saved'}</small></span><span class="sw ${rec.on ? 'on' : ''}" id="sRec" role="switch"></span></div>`}
       <label>Screensaver</label>
       <select id="sSaver">${[0, 2, 5, 10, 20, 30].map(m => `<option value="${m}" ${m === x.screensaver ? 'selected' : ''}>${m ? 'Clock after ' + m + ' min with nothing playing' : 'Off'}</option>`).join('')}</select>
       <label>Temperature</label>
@@ -547,12 +555,21 @@ $('#openSettings').onclick = async () => {
       <div class="actions"><button id="sCancel">Cancel</button><button class="primary" id="sSave">Save</button></div>`;
     $('#sLoc').value = x.loc;
   }
+  function keep() {   // what's typed so far, so redrawing doesn't lose it
+    x.loc = $('#sLoc').value; x.clips = $('#sClips').value.trim(); x.doorbell = +$('#sBell').value; x.screensaver = +$('#sSaver').value; x.code = $('#sCode').value.trim();
+  }
   draw();
   f.onclick = async e => {
     const b = e.target.closest('button, .sw'); if (!b) return;
-    x.loc = $('#sLoc').value; x.clips = $('#sClips').value.trim(); x.doorbell = +$('#sBell').value; x.screensaver = +$('#sSaver').value; x.code = $('#sCode').value.trim();
+    keep();
     if (b.dataset.u) { x.fahrenheit = b.dataset.u === 'f'; draw(); }
     else if (b.id === 'sAwake') { x.awake = !x.awake; draw(); }
+    else if (b.id === 'sRec') {
+      try {
+        const st = await fetch(s.clips + '/recording', { method: 'POST', body: rec.on ? 'off' : 'on', signal: AbortSignal.timeout(6000) }).then(r => r.json());
+        rec.on = st.recording_on; draw(); toast(rec.on ? 'Motion recording on' : 'Motion recording off');
+      } catch (e) { toast('The recorder isn\u2019t answering'); }
+    }
     else if (b.id === 'sCancel') sheet('#setSheet', false);
     else if (b.id === 'sSave') {
       const out = { clips: x.clips, doorbell: x.doorbell, screensaver: x.screensaver, fahrenheit: x.fahrenheit, awake: x.awake, code: x.code };
