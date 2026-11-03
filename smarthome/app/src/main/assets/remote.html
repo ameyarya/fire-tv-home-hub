@@ -503,15 +503,41 @@ function watch(id, name) {
   $('#camName').textContent = name;
   const cam = home && home.cameras.find(c => c.id === id);   // only cameras the recorder saves from have recordings
   $('#camActions').style.display = cam && cam.clips ? '' : 'none';
-  $('#camDot').className = 'dot warn'; $('#camStatus').textContent = 'Connecting…';
+  camState('warn', 'Connecting…');
   const img = $('#camImg');
-  img.onload = () => { if (watching === id) { $('#camDot').className = 'dot ok'; $('#camStatus').textContent = 'Live'; } };
-  img.onerror = () => { if (watching === id) { $('#camDot').className = 'dot bad'; $('#camStatus').textContent = 'No picture'; } };
-  img.src = api + 'camera.mjpg?id=' + encodeURIComponent(id) + '&t=' + Date.now();
+  const connect = () => { img.src = api + 'camera.mjpg?id=' + encodeURIComponent(id) + '&t=' + Date.now(); };
+  img.onload = () => { if (watching === id && !camFrozen.n) camState('ok', 'Live'); };
+  // The stream ended (the TV gives up after ~45 s without a picture): keep trying while the sheet is open.
+  img.onerror = () => { if (watching === id) { camState('warn', 'Reconnecting…'); setTimeout(() => { if (watching === id) connect(); }, 3000); } };
+  connect();
+  // A stalled MJPEG stream just keeps its last picture, so look at it: a live camera never sends the same
+  // picture twice, even of a still hallway. Frozen for ~6 s says reconnecting; changing again says live.
+  clearInterval(camFrozen.timer);
+  camFrozen.n = 0; camFrozen.last = '';
+  camFrozen.timer = setInterval(() => {
+    if (watching !== id) return clearInterval(camFrozen.timer);
+    let sig = '';
+    try {
+      const c = camFrozen.canvas || (camFrozen.canvas = Object.assign(document.createElement('canvas'), { width: 24, height: 18 }));
+      const g = c.getContext('2d', { willReadFrequently: true });
+      g.drawImage(img, 0, 0, 24, 18);
+      sig = g.getImageData(0, 0, 24, 18).data.join(',');
+    } catch (e) { return; }   // no picture yet
+    if (sig === camFrozen.last) {
+      if (++camFrozen.n === 3) camState('warn', 'Reconnecting…');
+    } else {
+      if (camFrozen.n >= 3 || $('#camStatus').textContent !== 'Live') camState('ok', 'Live');
+      camFrozen.n = 0;
+    }
+    camFrozen.last = sig;
+  }, 2000);
   sheet('#camSheet', true);
 }
+const camFrozen = { n: 0, last: '', timer: 0, canvas: null };
+function camState(dot, text) { $('#camDot').className = 'dot ' + dot; $('#camStatus').textContent = text; }
 function unwatch() {   // dropping the image closes the stream, so the TV stops relaying
   watching = null;
+  clearInterval(camFrozen.timer);
   $('#camImg').removeAttribute('src');
   sheet('#camSheet', false);
 }
