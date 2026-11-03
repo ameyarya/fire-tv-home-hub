@@ -64,8 +64,9 @@
   .sheet.open { display: block; }
   .panel { position: absolute; left: 0; right: 0; bottom: 0; max-width: 560px; margin: 0 auto; background: #111;
            border-radius: 22px 22px 0 0; padding: 10px 16px max(22px, env(safe-area-inset-bottom)); max-height: 92vh; overflow: auto; }
-  #camSheet .panel { max-height: 92vh; overflow-y: auto; }
-  #motionTitle { font-weight: 600; margin: 14px 0 8px; display: none; }
+  #motionSheet .panel { height: 80vh; max-height: 80vh; overflow-y: auto; }
+  #openMotion { position: relative; display: none; }
+  #openMotion.new::after { content: ''; position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; border-radius: 50%; background: #ff9f0a; }
   #motionBanner { all: unset; display: none; position: fixed; top: calc(env(safe-area-inset-top) + 10px); left: 50%; transform: translateX(-50%);
     z-index: 20; padding: 9px 16px; border-radius: 999px; background: #1d1d20; color: #fff; font-size: 14px; white-space: nowrap;
     box-shadow: 0 4px 18px rgb(0 0 0 / .5); cursor: pointer; }
@@ -181,6 +182,7 @@
     <h1>Home</h1>
     <div class="pills">
       <button class="pill icon" id="editBtn" aria-label="Move tiles"><svg><use href="#i-edit"/></svg></button>
+      <button class="pill icon" id="openMotion" aria-label="Recordings"><svg><use href="#i-cam"/></svg></button>
       <button class="pill icon" id="openLog" aria-label="Activity"><svg><use href="#i-list"/></svg></button>
       <button class="pill icon" id="openSettings" aria-label="Settings"><svg><use href="#i-gear"/></svg></button>
       <button class="pill icon" id="addBtn" aria-label="Add"><svg><use href="#i-plus"/></svg></button>
@@ -232,7 +234,12 @@
     <div class="panel-head"><b id="camName">Camera</b><span class="status"><i class="dot" id="camDot"></i><span id="camStatus">Connecting…</span></span></div>
     <div class="camview"><img id="camImg" alt=""></div>
     <div class="actions"><button id="camTv">Show on TV</button><button class="primary" id="camClose">Close</button></div>
-    <div id="motionTitle">Recordings</div>
+  </div>
+</div>
+<div class="sheet" id="motionSheet">
+  <div class="panel">
+    <div class="grab"></div>
+    <div class="panel-head"><b>Recordings</b></div>
     <video id="motionPlayer" controls playsinline></video>
     <div id="motionList"></div>
   </div>
@@ -400,26 +407,18 @@ function hideClip() {
   player.removeAttribute('src');
   player.style.display = 'none';
 }
-// Motion recordings, under the live view. Saved and served by the recorder on the Mac, not the TV.
-// refresh: just update the list, leaving a clip that's playing alone.
-async function showClips(id, refresh) {
-  const list = $('#motionList'), title = $('#motionTitle');
-  const still = () => watching === id;
-  if (!refresh) {
-    hideClip();
-    list.innerHTML = '';
-    title.style.display = 'none';
-  }
-  let cam, base;
-  try {
-    cam = (await fetch(api + 'home').then(r => r.json())).cameras.find(c => c.id === id);
-    if (!cam || !cam.clips) return;
-    base = (await fetch(api + 'settings').then(r => r.json())).clips;
-  } catch (e) { return; }
+// Motion recordings, from the Recordings button at the top. Saved and served by the recorder on the Mac, not the TV.
+let clipsShown = 0;   // a newer call wins if the sheet is reopened while loading
+async function showClips() {
+  const list = $('#motionList'), call = ++clipsShown;
+  const still = () => call === clipsShown && $('#motionSheet').classList.contains('open');
+  hideClip();
+  list.innerHTML = '<p class="empty">Loading…</p>';
+  let base;
+  try { base = (await fetch(api + 'settings').then(r => r.json())).clips; }
+  catch (e) { if (still()) list.innerHTML = '<p class="empty">The TV isn\u2019t answering</p>'; return; }
   if (!still()) return;
-  title.style.display = 'block';
   if (!base) { list.innerHTML = '<p class="empty">Add the recorder\u2019s clips link in Settings to see recordings.</p>'; return; }
-  if (!refresh) list.innerHTML = '<p class="empty">Loading…</p>';
   let clips;
   // A firewall in stealth mode never answers, so don't wait forever.
   try { clips = await fetch(base + '/clips.json', { signal: AbortSignal.timeout(6000) }).then(r => r.json()); }
@@ -449,7 +448,7 @@ async function showClips(id, refresh) {
   });
 }
 // One notice when the page opens: the newest motion clip, if it's new since the last visit.
-// Tapping it opens the door camera with its recordings. It doesn't keep checking.
+// Tapping it opens the recordings. It doesn't keep checking.
 const motion = { cam: null };
 function seenMotion(start) { try { localStorage.setItem('seenMotion', start); } catch (e) {} }
 function ago(when) {
@@ -467,25 +466,33 @@ async function checkMotion() {
     const base = (await fetch(api + 'settings').then(r => r.json())).clips;
     motion.cam = (await fetch(api + 'home').then(r => r.json())).cameras.find(c => c.clips);
     if (!base || !motion.cam) return;
+    $('#openMotion').style.display = '';
     const clips = await fetch(base + '/clips.json', { signal: AbortSignal.timeout(6000) }).then(r => r.json());
     let seen = null;
     try { seen = localStorage.getItem('seenMotion'); } catch (e) {}
     const newest = clips[0];
     if (!newest || newest.start === seen) return;
     seenMotion(newest.start);
+    $('#openMotion').classList.add('new');
     if (seen === null && Date.now() - new Date(newest.start) > 86400000) return;   // first visit: skip old news
     banner.innerHTML = `<i></i>New motion at ${esc(motion.cam.name)} ${ago(new Date(newest.start))}`;
     banner.style.display = 'block';
     setTimeout(() => { banner.style.display = 'none'; }, 10000);
   } catch (e) {}
 }
-$('#motionBanner').onclick = () => { $('#motionBanner').style.display = 'none'; if (motion.cam) watch(motion.cam.id, motion.cam.name); };
+function openMotion() {
+  $('#motionBanner').style.display = 'none';
+  $('#openMotion').classList.remove('new');
+  sheet('#motionSheet', true);
+  showClips();
+}
+$('#motionBanner').onclick = openMotion;
+$('#openMotion').onclick = openMotion;
 setTimeout(checkMotion, 500);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) checkMotion(); });
 
 function watch(id, name) {
   watching = id;
-  showClips(id);
   $('#camName').textContent = name;
   $('#camDot').className = 'dot warn'; $('#camStatus').textContent = 'Connecting…';
   const img = $('#camImg');
@@ -496,7 +503,6 @@ function watch(id, name) {
 }
 function unwatch() {   // dropping the image closes the stream, so the TV stops relaying
   watching = null;
-  hideClip();
   $('#camImg').removeAttribute('src');
   sheet('#camSheet', false);
 }
@@ -760,6 +766,7 @@ document.addEventListener('visibilitychange', load);
 // ---- sheets ----
 function sheet(id, open) {
   $(id).classList.toggle('open', open);
+  if (id === '#motionSheet' && !open) hideClip();
   if (id === '#remoteSheet') { clearInterval(sheet.t); if (open) { status(); sheet.t = setInterval(status, 3000); } }
 }
 $('#openLog').onclick = () => {
