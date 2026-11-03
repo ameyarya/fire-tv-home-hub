@@ -64,6 +64,20 @@
   .sheet.open { display: block; }
   .panel { position: absolute; left: 0; right: 0; bottom: 0; max-width: 560px; margin: 0 auto; background: #111;
            border-radius: 22px 22px 0 0; padding: 10px 16px max(22px, env(safe-area-inset-bottom)); max-height: 92vh; overflow: auto; }
+  #camSheet .panel { max-height: 92vh; overflow-y: auto; }
+  #motionTitle { font-weight: 600; margin: 14px 0 8px; display: none; }
+  #motionBanner { all: unset; display: none; position: fixed; top: calc(env(safe-area-inset-top) + 10px); left: 50%; transform: translateX(-50%);
+    z-index: 20; padding: 9px 16px; border-radius: 999px; background: #1d1d20; color: #fff; font-size: 14px; white-space: nowrap;
+    box-shadow: 0 4px 18px rgb(0 0 0 / .5); cursor: pointer; }
+  #motionBanner i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; background: #ff453a; }
+  #motionBanner.saving i { background: #ffd60a; } #motionBanner.ready i { background: #30d158; }
+  #motionPlayer { width: 100%; border-radius: 12px; background: #000; margin-bottom: 12px; display: none; }
+  .clips { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+  .clips > div { position: relative; font-size: 13px; color: var(--dim); }
+  .clips .play { all: unset; cursor: pointer; display: block; }
+  .clips .del { all: unset; cursor: pointer; position: absolute; top: 4px; right: 4px; width: 28px; height: 28px; line-height: 28px;
+    text-align: center; border-radius: 50%; background: rgb(0 0 0 / .65); color: #fff; font-size: 16px; }
+  .clips img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 10px; background: #222; margin-bottom: 4px; }
   #logSheet .panel { height: 50vh; max-height: 50vh; }   /* Activity: half the screen, the list scrolls */
   .seg.mode { display: flex; margin-bottom: 10px; } .seg.mode button { flex: 1; }
   #scr { display: none; position: relative; }
@@ -212,12 +226,16 @@
     <div class="log" id="log"></div>
   </div>
 </div>
+<button id="motionBanner"></button>
 <div class="sheet" id="camSheet">
   <div class="panel">
     <div class="grab"></div>
     <div class="panel-head"><b id="camName">Camera</b><span class="status"><i class="dot" id="camDot"></i><span id="camStatus">Connecting…</span></span></div>
     <div class="camview"><img id="camImg" alt=""></div>
     <div class="actions"><button id="camTv">Show on TV</button><button class="primary" id="camClose">Close</button></div>
+    <div id="motionTitle">Recordings</div>
+    <video id="motionPlayer" controls playsinline></video>
+    <div id="motionList"></div>
   </div>
 </div>
 <div class="sheet" id="setSheet">
@@ -377,8 +395,93 @@ $('#sections').addEventListener('click', e => {
 
 // ---- watching a camera: the TV relays it as MJPEG (pictures only), shown in an <img> ----
 let watching = null;
+function hideClip() {
+  const player = $('#motionPlayer');
+  player.pause();
+  player.removeAttribute('src');
+  player.style.display = 'none';
+}
+// Motion recordings, under the live view. Saved and served by the recorder on the Mac, not the TV.
+// refresh: just update the list, leaving a clip that's playing alone.
+async function showClips(id, refresh) {
+  const list = $('#motionList'), title = $('#motionTitle');
+  const still = () => watching === id;
+  if (!refresh) {
+    hideClip();
+    list.innerHTML = '';
+    title.style.display = 'none';
+  }
+  let cam, base;
+  try {
+    cam = (await fetch(api + 'home').then(r => r.json())).cameras.find(c => c.id === id);
+    if (!cam || !cam.clips) return;
+    base = (await fetch(api + 'settings').then(r => r.json())).clips;
+  } catch (e) { return; }
+  if (!still()) return;
+  title.style.display = 'block';
+  if (!base) { list.innerHTML = '<p class="empty">Add the recorder\u2019s clips link in Settings to see recordings.</p>'; return; }
+  if (!refresh) list.innerHTML = '<p class="empty">Loading…</p>';
+  let clips;
+  // A firewall in stealth mode never answers, so don't wait forever.
+  try { clips = await fetch(base + '/clips.json', { signal: AbortSignal.timeout(6000) }).then(r => r.json()); }
+  catch (e) { if (still()) list.innerHTML = '<p class="empty">Can\u2019t reach the recorder. Is it running on the Mac, is the Mac awake, and does its firewall allow it?</p>'; return; }
+  if (!still()) return;
+  if (!clips.length) { list.innerHTML = '<p class="empty">No recordings yet.</p>'; return; }
+  list.innerHTML = '<div class="clips">' + clips.map(c => {
+    const when = new Date(c.start);
+    return `<div><button class="play" data-v="${esc(c.video)}"><img loading="lazy" alt="" src="${esc(base + '/' + c.picture)}">${esc(when.toLocaleDateString([], { month: 'short', day: 'numeric' }))} ${esc(when.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }))} · ${Math.round(c.seconds)}s</button><button class="del" data-v="${esc(c.video)}" aria-label="Delete recording">×</button></div>`;
+  }).join('') + '</div>';
+  const player = $('#motionPlayer');
+  list.querySelectorAll('.play').forEach(b => b.onclick = () => {
+    player.src = base + '/' + b.dataset.v;
+    player.style.display = 'block';
+    player.play().catch(() => {});
+    player.scrollIntoView({ block: 'nearest' });
+  });
+  list.querySelectorAll('.del').forEach(b => b.onclick = async () => {
+    if (!confirm('Delete this recording for good?')) return;
+    let ok = false;
+    try { ok = (await fetch(base + '/' + b.dataset.v, { method: 'DELETE', signal: AbortSignal.timeout(6000) })).ok; } catch (e) {}
+    if (!ok) { toast('Couldn\u2019t delete it'); return; }
+    if (player.getAttribute('src') === base + '/' + b.dataset.v) hideClip();
+    b.parentElement.remove();
+    if (!list.querySelector('.del')) list.innerHTML = '<p class="empty">No recordings yet.</p>';
+    toast('Recording deleted');
+  });
+}
+// A banner for motion at the door: recording, then saving, then ready. Checks every few seconds
+// while the page is open, and updates the Recordings list when a new clip is done.
+const motion = { base: '', cam: null, newest: undefined, readyUntil: 0, checkedSetup: 0 };
+async function checkMotion() {
+  if (document.hidden) return;
+  const banner = $('#motionBanner');
+  try {
+    if (!motion.base || Date.now() - motion.checkedSetup > 60000) {   // a changed link or camera shows up within a minute
+      motion.checkedSetup = Date.now();
+      motion.base = (await fetch(api + 'settings').then(r => r.json())).clips;
+      motion.cam = (await fetch(api + 'home').then(r => r.json())).cameras.find(c => c.clips);
+    }
+    if (!motion.base || !motion.cam) { banner.style.display = 'none'; return; }
+    const s = await fetch(motion.base + '/status.json', { signal: AbortSignal.timeout(2500) }).then(r => r.json());
+    const fresh = motion.newest !== undefined && s.newest && s.newest !== motion.newest;
+    if (s.newest !== motion.newest && motion.newest !== undefined && watching === motion.cam.id) showClips(watching, true);
+    motion.newest = s.newest;
+    if (fresh) motion.readyUntil = Date.now() + 8000;
+    if (s.state === 'recording') { banner.className = ''; banner.innerHTML = `<i></i>Something moved at ${esc(motion.cam.name)} · recording ${s.seconds}s`; }
+    else if (s.state === 'saving') { banner.className = 'saving'; banner.innerHTML = '<i></i>Saving the recording…'; }
+    else if (Date.now() < motion.readyUntil) { banner.className = 'ready'; banner.innerHTML = '<i></i>New recording ready'; }
+    else { banner.style.display = 'none'; return; }
+    banner.style.display = 'block';
+  } catch (e) { banner.style.display = 'none'; }
+}
+$('#motionBanner').onclick = () => { if (motion.cam) { motion.readyUntil = 0; $('#motionBanner').style.display = 'none'; watch(motion.cam.id, motion.cam.name); } };
+setInterval(checkMotion, 3000);
+setTimeout(checkMotion, 500);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) checkMotion(); });
+
 function watch(id, name) {
   watching = id;
+  showClips(id);
   $('#camName').textContent = name;
   $('#camDot').className = 'dot warn'; $('#camStatus').textContent = 'Connecting…';
   const img = $('#camImg');
@@ -389,6 +492,7 @@ function watch(id, name) {
 }
 function unwatch() {   // dropping the image closes the stream, so the TV stops relaying
   watching = null;
+  hideClip();
   $('#camImg').removeAttribute('src');
   sheet('#camSheet', false);
 }
@@ -420,7 +524,7 @@ $('#openSettings').onclick = async () => {
   sheet('#setSheet', true);
   let s;
   try { s = await fetch(api + 'settings').then(r => r.json()); } catch (e) { f.querySelector('.note').textContent = 'The TV isn\u2019t answering'; return; }
-  const x = { doorbell: s.doorbell, screensaver: s.screensaver, fahrenheit: s.fahrenheit, awake: s.awake, code: s.code, loc: s.location ? s.location.lat + ',' + s.location.lon : '' };
+  const x = { clips: s.clips, doorbell: s.doorbell, screensaver: s.screensaver, fahrenheit: s.fahrenheit, awake: s.awake, code: s.code, loc: s.location ? s.location.lat + ',' + s.location.lon : '' };
   const cities = s.zones.map(z => `<optgroup label="${esc(z.zone)}">${z.cities.map(c => `<option value="${c.lat},${c.lon}">${esc(c.name)}</option>`).join('')}</optgroup>`).join('');
   const here = s.location && !s.zones.some(z => z.cities.some(c => c.lat + ',' + c.lon === x.loc))
     ? `<option value="${x.loc}">${esc(s.location.name || x.loc)}</option>` : '';
@@ -430,6 +534,8 @@ $('#openSettings').onclick = async () => {
       <select id="sLoc">${s.location ? '' : '<option value="">Not set</option>'}${here}${cities}</select>
       <label>Show the door camera on a ring for</label>
       <select id="sBell">${[[10, '10 seconds'], [30, '30 seconds'], [60, '1 minute'], [120, '2 minutes']].map(([v, t]) => `<option value="${v}" ${v === x.doorbell ? 'selected' : ''}>${t}</option>`).join('')}</select>
+      <label>Motion clips link, from the recorder on the Mac</label>
+      <input type="text" id="sClips" value="${esc(x.clips)}" placeholder="http://192.168.1.50:8766/…" autocapitalize="off" autocomplete="off">
       <label>Screensaver</label>
       <select id="sSaver">${[0, 2, 5, 10, 20, 30].map(m => `<option value="${m}" ${m === x.screensaver ? 'selected' : ''}>${m ? 'Clock after ' + m + ' min with nothing playing' : 'Off'}</option>`).join('')}</select>
       <label>Temperature</label>
@@ -444,12 +550,12 @@ $('#openSettings').onclick = async () => {
   draw();
   f.onclick = async e => {
     const b = e.target.closest('button, .sw'); if (!b) return;
-    x.loc = $('#sLoc').value; x.doorbell = +$('#sBell').value; x.screensaver = +$('#sSaver').value; x.code = $('#sCode').value.trim();
+    x.loc = $('#sLoc').value; x.clips = $('#sClips').value.trim(); x.doorbell = +$('#sBell').value; x.screensaver = +$('#sSaver').value; x.code = $('#sCode').value.trim();
     if (b.dataset.u) { x.fahrenheit = b.dataset.u === 'f'; draw(); }
     else if (b.id === 'sAwake') { x.awake = !x.awake; draw(); }
     else if (b.id === 'sCancel') sheet('#setSheet', false);
     else if (b.id === 'sSave') {
-      const out = { doorbell: x.doorbell, screensaver: x.screensaver, fahrenheit: x.fahrenheit, awake: x.awake, code: x.code };
+      const out = { clips: x.clips, doorbell: x.doorbell, screensaver: x.screensaver, fahrenheit: x.fahrenheit, awake: x.awake, code: x.code };
       if (x.loc) { const [lat, lon] = x.loc.split(','); out.lat = +lat; out.lon = +lon; }
       const r = await post('settings', JSON.stringify(out));
       if (r && r.ok) { sheet('#setSheet', false); toast('Saved'); load(); }

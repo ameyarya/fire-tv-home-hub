@@ -86,9 +86,9 @@ public class MjpegTest {
 
     @Test
     public void tellsStreamsFromRtspAddresses() {
-        assertTrue(Mjpeg.isStream("http://192.168.1.194:81/stream"));
+        assertTrue(Mjpeg.isStream("http://192.168.1.60:81/stream"));
         assertTrue(Mjpeg.isStream("HTTPS://cam/stream"));
-        assertFalse(Mjpeg.isStream("rtsp://u:p@192.168.1.249:554/live0"));
+        assertFalse(Mjpeg.isStream("rtsp://u:p@192.168.1.60:554/live0"));
         assertFalse(Mjpeg.isStream("192.168.1.60"));
     }
 }

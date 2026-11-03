@@ -14,7 +14,7 @@ public class HomeTest {
         h.devices.add(new Home.Device("d1", "Lamp", "192.168.1.40", 2, true, false));
         h.devices.add(new Home.Device("d2", "TV plug", "192.168.1.41:8080", 1, true, false));
         h.devices.add(new Home.Device("d3", "Bedroom", "192.168.1.42", 3, false, true));
-        h.cameras.add(new Home.Camera("c1", "Living room", "rtsp://u:p@192.168.1.249:554/live0"));
+        h.cameras.add(new Home.Camera("c1", "Living room", "rtsp://u:p@192.168.1.60:554/live0"));
         Home.Scene s = new Home.Scene("s1", "Movie night");
         s.actions.add(new Home.Action("d1", false));
         s.actions.add(new Home.Action("d2", true));
@@ -32,7 +32,7 @@ public class HomeTest {
         assertEquals(1, tv.gen);
         assertTrue(h.device("d3").hasSensor);
         assertFalse(h.device("d3").hasSwitch);
-        assertEquals("rtsp://u:p@192.168.1.249:554/live0", h.cameras.get(0).url);
+        assertEquals("rtsp://u:p@192.168.1.60:554/live0", h.cameras.get(0).url);
         assertEquals(2, h.scenes.get(0).actions.size());
         assertFalse(h.scenes.get(0).actions.get(0).on);
         assertTrue(h.scenes.get(0).actions.get(1).on);

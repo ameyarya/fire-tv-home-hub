@@ -6,7 +6,7 @@ import java.io.InputStream;
 
 /**
  * Cameras that stream MJPEG over HTTP, such as an ESP32 camera, instead of RTSP. Their address is the full
- * stream URL, for example http://192.168.1.194:81/stream.
+ * stream URL, for example http://192.168.1.60:81/stream.
  */
 final class Mjpeg {
 

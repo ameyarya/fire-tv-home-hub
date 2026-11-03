@@ -44,7 +44,7 @@ print('Broadcast completed: result=1, data="%s"' % data)
 
 HOME = {"devices": [{"id": "p1", "name": "Plug 1", "host": "192.168.1.198", "brand": "kasa", "switch": True},
                     {"id": "p2", "name": "Plug 2", "host": "192.168.1.197", "brand": "kasa", "switch": True}],
-        "cameras": [{"id": "c", "name": "Living room", "url": "(hidden)", "host": "192.168.1.249:554"}],
+        "cameras": [{"id": "c", "name": "Living room", "url": "(hidden)", "host": "192.168.1.60:554"}],
         "scenes": [],
         "schedules": [{"id": "s", "name": "Lamp off", "enabled": True, "text": "Every day · 23:30",
                        "next": "2026-10-19T23:30-07:00[America/Los_Angeles]", "scene": "",
@@ -90,7 +90,7 @@ class CliTest(unittest.TestCase):
         self.assertIn("Plug 1", out)
         self.assertIn("Every day · 23:30", out)
         self.assertIn("off Plug 2", out)
-        self.assertIn("192.168.1.249:554", out)
+        self.assertIn("192.168.1.60:554", out)
         self.assertEqual(self.sent(), [])          # a read sends no action
 
     def test_schedule_with_spaces_and_quotes_arrives_intact(self):
@@ -119,9 +119,9 @@ class CliTest(unittest.TestCase):
     def test_camera_password_is_encoded_sent_once_and_never_printed(self):
         pw = "p@ss w'rd:\"x/%"
         with mock.patch.object(home.getpass, "getpass", return_value=pw):
-            out = self.run_cli("camera", "Living room", "192.168.1.249", "--user", "viewer")
+            out = self.run_cli("camera", "Living room", "192.168.1.60", "--user", "viewer")
         url = self.sent()[-1]["extras"]["url"]
-        self.assertEqual(url, "rtsp://viewer:p%40ss%20w%27rd%3A%22x%2F%25@192.168.1.249:554/live0")
+        self.assertEqual(url, "rtsp://viewer:p%40ss%20w%27rd%3A%22x%2F%25@192.168.1.60:554/live0")
         from urllib.parse import unquote
         self.assertEqual(unquote(url.split(":")[2].split("@")[0]), pw)   # decodes back to exactly what was typed
         self.assertNotIn(pw, out)
@@ -168,7 +168,7 @@ class CliTest(unittest.TestCase):
     def test_find_adds_only_new_plugs(self):
         plugs = {"192.168.1.198": {"alias": "Plug 1", "model": "EP25(US)", "relay_state": 1},
                  "192.168.1.250": {"alias": "Plug 3", "model": "EP25(US)", "relay_state": 0}}
-        with mock.patch.object(home, "kasa_discover", return_value=plugs), mock.patch.object(home, "find_cameras", return_value=["192.168.1.249"]):
+        with mock.patch.object(home, "kasa_discover", return_value=plugs), mock.patch.object(home, "find_cameras", return_value=["192.168.1.60"]):
             out = self.run_cli("find")
         self.assertIn("camera-setup", out)
         adds = [s["extras"]["host"] for s in self.sent() if s["action"].endswith("ADD_DEVICE")]

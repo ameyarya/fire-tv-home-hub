@@ -137,7 +137,7 @@ final class Editors {
     void addCamera() {
         p.list("Add a camera", Arrays.asList("Find cameras on Wi-Fi", "Enter its address"), i -> {
             if (i == 1) {
-                p.askText("Camera address", "", "192.168.1.249", host -> cameraDetails(host.trim(), null));
+                p.askText("Camera address", "", "192.168.1.60", host -> cameraDetails(host.trim(), null));
                 return;
             }
             p.say("Looking for cameras on your Wi-Fi…");

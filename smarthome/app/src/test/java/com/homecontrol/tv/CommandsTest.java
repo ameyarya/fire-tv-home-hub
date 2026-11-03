@@ -127,24 +127,24 @@ public class CommandsTest {
 
     @Test
     public void cameraAddedThenUpdatedByName() {
-        assertNull(run("ADD_CAMERA", "name", "Living room", "url", "rtsp://192.168.1.249:554/live0"));
-        assertNull(run("ADD_CAMERA", "name", "living room", "url", "rtsp://viewer:p%40ss@192.168.1.249:554/live0"));
+        assertNull(run("ADD_CAMERA", "name", "Living room", "url", "rtsp://192.168.1.60:554/live0"));
+        assertNull(run("ADD_CAMERA", "name", "living room", "url", "rtsp://viewer:p%40ss@192.168.1.60:554/live0"));
         assertEquals(1, h.cameras.size());
-        assertEquals("rtsp://viewer:p%40ss@192.168.1.249:554/live0", h.cameras.get(0).url);
-        assertTrue(run("ADD_CAMERA", "name", "x", "url", "192.168.1.249").contains("rtsp://"));
-        assertNull(run("ADD_CAMERA", "name", "Door", "url", "http://192.168.1.194:81/stream"));
-        assertEquals("http://192.168.1.194:81/stream", h.cameras.get(1).url);
+        assertEquals("rtsp://viewer:p%40ss@192.168.1.60:554/live0", h.cameras.get(0).url);
+        assertTrue(run("ADD_CAMERA", "name", "x", "url", "192.168.1.60").contains("rtsp://"));
+        assertNull(run("ADD_CAMERA", "name", "Door", "url", "http://192.168.1.60:81/stream"));
+        assertEquals("http://192.168.1.60:81/stream", h.cameras.get(1).url);
     }
 
     @Test
     public void reportHidesCameraPasswordsAndDescribesSchedules() throws Exception {
-        run("ADD_CAMERA", "name", "Living room", "url", "rtsp://viewer:s3cret@192.168.1.249:554/live0");
+        run("ADD_CAMERA", "name", "Living room", "url", "rtsp://viewer:s3cret@192.168.1.60:554/live0");
         run("ADD_SCHEDULE", "name", "Night", "at", "23:30", "[]off", "Plug 2");
         String report = Commands.report(h, ZoneId.of("America/Los_Angeles"));
         assertFalse(report.contains("s3cret"));
         assertFalse(report.contains("viewer"));
         JSONObject o = new JSONObject(report);
-        assertEquals("192.168.1.249:554", o.getJSONArray("cameras").getJSONObject(0).getString("host"));
+        assertEquals("192.168.1.60:554", o.getJSONArray("cameras").getJSONObject(0).getString("host"));
         JSONObject s = o.getJSONArray("schedules").getJSONObject(0);
         assertEquals("Every day · 23:30", s.getString("text"));
         assertTrue(s.getString("next").contains("T23:30"));
@@ -194,8 +194,8 @@ public class CommandsTest {
 
     @Test
     public void hostOfNeverIncludesTheUser() {
-        assertEquals("192.168.1.249:554", Commands.hostOf("rtsp://u:p@192.168.1.249:554/live0"));
-        assertEquals("192.168.1.249", Commands.hostOf("rtsp://192.168.1.249/live0"));
+        assertEquals("192.168.1.60:554", Commands.hostOf("rtsp://u:p@192.168.1.60:554/live0"));
+        assertEquals("192.168.1.60", Commands.hostOf("rtsp://192.168.1.60/live0"));
         assertEquals("cam.local:8554", Commands.hostOf("RTSP://a@b:c@cam.local:8554/x"));
     }
 
@@ -241,7 +241,7 @@ public class CommandsTest {
 
     @Test
     public void defaultUrlIsEufysPath() {
-        assertEquals("rtsp://192.168.1.249:554/live0", CameraScan.defaultUrl("192.168.1.249"));
+        assertEquals("rtsp://192.168.1.60:554/live0", CameraScan.defaultUrl("192.168.1.60"));
     }
 
     /** Read-only, against the real network: KASA_LIVE=1. Lists RTSP cameras on this Mac's network. */

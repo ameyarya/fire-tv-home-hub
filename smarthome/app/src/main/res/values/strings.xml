@@ -23,7 +23,7 @@
     <string name="add_camera">Add camera</string>
     <string name="camera_name">Camera name</string>
     <string name="camera_url">Stream address (RTSP)</string>
-    <string name="camera_url_hint">rtsp://user:password@192.168.1.249:554/live0</string>
+    <string name="camera_url_hint">rtsp://user:password@192.168.1.60:554/live0</string>
     <string name="camera_connecting">Connecting…</string>
     <string name="camera_error">Can\'t show this camera.\n%1$s\n\nOn eufy cameras: eufy app → camera → Settings → Storage → NAS (RTSP), switch it on and set a stream username and password.</string>
     <string name="rename">Rename</string>

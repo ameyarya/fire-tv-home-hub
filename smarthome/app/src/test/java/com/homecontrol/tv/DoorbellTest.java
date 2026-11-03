@@ -7,7 +7,7 @@ import org.junit.Test;
 
 public class DoorbellTest {
 
-    private static final String MJPEG = "http://192.168.1.194:81/stream", RTSP = "rtsp://192.168.1.249:554/live0";
+    private static final String MJPEG = "http://192.168.1.60:81/stream", RTSP = "rtsp://192.168.1.60:554/live0";
 
     @Test
     public void pictureOnlyOverSomethingPlaying() {

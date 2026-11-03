@@ -32,7 +32,7 @@ import java.net.URL;
  */
 final class Doorbell {
 
-    private static final String PREFS = "doorbell", SECONDS = "seconds";
+    private static final String PREFS = "doorbell", SECONDS = "seconds", CLIPS = "clips";
     private static final int DEFAULT_SECONDS = 30;
     private static final long REPEAT_MS = 10_000, TICK_MS = 250;
     private static final long FRAME_MS = 100;
@@ -60,6 +60,17 @@ final class Doorbell {
     static boolean setSeconds(Context c, int seconds) {
         if (!Mjpeg.isDoorbellSeconds(seconds)) return false;
         prefs(c).edit().putInt(SECONDS, seconds).apply();
+        return true;
+    }
+
+    /** Where the recorder on the network serves motion clips: its private link, or empty. */
+    static String clipsUrl(Context c) {
+        return prefs(c).getString(CLIPS, "");
+    }
+
+    static boolean setClipsUrl(Context c, String url) {
+        if (!url.isEmpty() && !Mjpeg.isStream(url)) return false;
+        prefs(c).edit().putString(CLIPS, url).apply();
         return true;
     }
 

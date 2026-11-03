@@ -96,7 +96,8 @@ final class HomeApi {
         }
         JSONArray cameras = new JSONArray();
         for (Home.Camera cam : h.cameras) {   // name and room only: the stream address holds the camera's password
-            cameras.put(new JSONObject().put("id", cam.id).put("name", cam.name).put("room", cam.roomId));
+            cameras.put(new JSONObject().put("id", cam.id).put("name", cam.name).put("room", cam.roomId)
+                    .put("clips", Mjpeg.isStream(cam.url)));   // the recorder's motion clips come from this kind of camera
         }
         for (Home.Scene s : h.scenes) {
             int on = 0;
@@ -464,7 +465,7 @@ final class HomeApi {
         boolean set = !Double.isNaN(h.latitude);
         o.put("location", set ? new JSONObject().put("name", Places.nearest(h.latitude, h.longitude))
                 .put("lat", h.latitude).put("lon", h.longitude) : JSONObject.NULL);
-        o.put("doorbell", Doorbell.seconds(c));
+        o.put("doorbell", Doorbell.seconds(c)).put("clips", Doorbell.clipsUrl(c));
         o.put("screensaver", Idle.minutes(c)).put("fahrenheit", Idle.fahrenheit(c))
                 .put("code", Remote.code(c)).put("awake", Remote.keepAwake(c));
         JSONArray zones = new JSONArray();
@@ -490,6 +491,7 @@ final class HomeApi {
         }
         if (o.has("code") && !Remote.setCode(c, o.optString("code"))) return "The code is 4 digits";
         if (o.has("doorbell") && !Doorbell.setSeconds(c, o.optInt("doorbell"))) return "Choose 10 seconds, 30 seconds, 1 minute or 2 minutes";
+        if (o.has("clips") && !Doorbell.setClipsUrl(c, o.optString("clips").trim().replaceAll("/+$", ""))) return "The motion clips link starts with http://";
         if (o.has("screensaver") && !Idle.set(c, o.optInt("screensaver"))) return "The clean launcher (which opens the clock) isn't installed";
         if (o.has("fahrenheit")) Idle.setFahrenheit(c, o.optBoolean("fahrenheit"));
         if (o.has("awake")) Remote.setKeepAwake(c, o.optBoolean("awake"));
