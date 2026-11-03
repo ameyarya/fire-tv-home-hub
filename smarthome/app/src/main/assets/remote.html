@@ -65,8 +65,6 @@
   .panel { position: absolute; left: 0; right: 0; bottom: 0; max-width: 560px; margin: 0 auto; background: #111;
            border-radius: 22px 22px 0 0; padding: 10px 16px max(22px, env(safe-area-inset-bottom)); max-height: 92vh; overflow: auto; }
   #motionSheet .panel { height: 80vh; max-height: 80vh; overflow-y: auto; }
-  #openMotion { position: relative; display: none; }
-  #openMotion.new::after { content: ''; position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; border-radius: 50%; background: #ff9f0a; }
   #motionBanner { all: unset; display: none; position: fixed; top: calc(env(safe-area-inset-top) + 10px); left: 50%; transform: translateX(-50%);
     z-index: 20; padding: 9px 16px; border-radius: 999px; background: #1d1d20; color: #fff; font-size: 14px; white-space: nowrap;
     box-shadow: 0 4px 18px rgb(0 0 0 / .5); cursor: pointer; }
@@ -75,8 +73,9 @@
   .clips { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
   .clips > div { position: relative; font-size: 13px; color: var(--dim); }
   .clips .play { all: unset; cursor: pointer; display: block; }
-  .clips .del { all: unset; cursor: pointer; position: absolute; top: 4px; right: 4px; width: 28px; height: 28px; line-height: 28px;
+  .clips .del, .clips .save { all: unset; cursor: pointer; position: absolute; top: 4px; right: 4px; width: 28px; height: 28px; line-height: 28px;
     text-align: center; border-radius: 50%; background: rgb(0 0 0 / .65); color: #fff; font-size: 16px; }
+  .clips .save { right: 38px; font-size: 15px; }
   .clips img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 10px; background: #222; margin-bottom: 4px; }
   #logSheet .panel { height: 50vh; max-height: 50vh; }   /* Activity: half the screen, the list scrolls */
   .seg.mode { display: flex; margin-bottom: 10px; } .seg.mode button { flex: 1; }
@@ -182,7 +181,6 @@
     <h1>Home</h1>
     <div class="pills">
       <button class="pill icon" id="editBtn" aria-label="Move tiles"><svg><use href="#i-edit"/></svg></button>
-      <button class="pill icon" id="openMotion" aria-label="Recordings"><svg><use href="#i-cam"/></svg></button>
       <button class="pill icon" id="openLog" aria-label="Activity"><svg><use href="#i-list"/></svg></button>
       <button class="pill icon" id="openSettings" aria-label="Settings"><svg><use href="#i-gear"/></svg></button>
       <button class="pill icon" id="addBtn" aria-label="Add"><svg><use href="#i-plus"/></svg></button>
@@ -233,7 +231,7 @@
     <div class="grab"></div>
     <div class="panel-head"><b id="camName">Camera</b><span class="status"><i class="dot" id="camDot"></i><span id="camStatus">Connecting…</span></span></div>
     <div class="camview"><img id="camImg" alt=""></div>
-    <div class="actions"><button id="camTv">Show on TV</button><button class="primary" id="camClose">Close</button></div>
+    <div class="actions" id="camActions"><button class="primary" id="camClips">Recordings</button></div>
   </div>
 </div>
 <div class="sheet" id="motionSheet">
@@ -427,7 +425,7 @@ async function showClips() {
   if (!clips.length) { list.innerHTML = '<p class="empty">No recordings yet.</p>'; return; }
   list.innerHTML = '<div class="clips">' + clips.map(c => {
     const when = new Date(c.start);
-    return `<div><button class="play" data-v="${esc(c.video)}"><img loading="lazy" alt="" src="${esc(base + '/' + c.picture)}">${esc(when.toLocaleDateString([], { month: 'short', day: 'numeric' }))} ${esc(when.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }))} · ${Math.round(c.seconds)}s</button><button class="del" data-v="${esc(c.video)}" aria-label="Delete recording">×</button></div>`;
+    return `<div><button class="play" data-v="${esc(c.video)}"><img loading="lazy" alt="" src="${esc(base + '/' + c.picture)}">${esc(when.toLocaleDateString([], { month: 'short', day: 'numeric' }))} ${esc(when.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }))} · ${Math.round(c.seconds)}s</button><button class="save" data-v="${esc(c.video)}" aria-label="Save recording">↓</button><button class="del" data-v="${esc(c.video)}" aria-label="Delete recording">×</button></div>`;
   }).join('') + '</div>';
   const player = $('#motionPlayer');
   list.querySelectorAll('.play').forEach(b => b.onclick = () => {
@@ -436,6 +434,7 @@ async function showClips() {
     player.play().catch(() => {});
     player.scrollIntoView({ block: 'nearest' });
   });
+  list.querySelectorAll('.save').forEach(b => b.onclick = () => saveClip(base + '/' + b.dataset.v, b.dataset.v));
   list.querySelectorAll('.del').forEach(b => b.onclick = async () => {
     if (!confirm('Delete this recording for good?')) return;
     let ok = false;
@@ -446,6 +445,18 @@ async function showClips() {
     if (!list.querySelector('.del')) list.innerHTML = '<p class="empty">No recordings yet.</p>';
     toast('Recording deleted');
   });
+}
+// Saves a clip to the phone. The page is plain http, so the share sheet isn't offered;
+// it's a download instead (on an iPhone, into Files > Downloads).
+async function saveClip(url, name) {
+  toast('Saving…');
+  try {
+    const blob = await fetch(url, { signal: AbortSignal.timeout(30000) }).then(r => { if (!r.ok) throw 0; return r.blob(); });
+    const file = 'door-' + name.replace('/', '-');
+    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: file });
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+  } catch (e) { toast('Couldn\u2019t save it'); }
 }
 // One notice when the page opens: the newest motion clip, if it's new since the last visit.
 // Tapping it opens the recordings. It doesn't keep checking.
@@ -466,14 +477,12 @@ async function checkMotion() {
     const base = (await fetch(api + 'settings').then(r => r.json())).clips;
     motion.cam = (await fetch(api + 'home').then(r => r.json())).cameras.find(c => c.clips);
     if (!base || !motion.cam) return;
-    $('#openMotion').style.display = '';
     const clips = await fetch(base + '/clips.json', { signal: AbortSignal.timeout(6000) }).then(r => r.json());
     let seen = null;
     try { seen = localStorage.getItem('seenMotion'); } catch (e) {}
     const newest = clips[0];
     if (!newest || newest.start === seen) return;
     seenMotion(newest.start);
-    $('#openMotion').classList.add('new');
     if (seen === null && Date.now() - new Date(newest.start) > 86400000) return;   // first visit: skip old news
     banner.innerHTML = `<i></i>New motion at ${esc(motion.cam.name)} ${ago(new Date(newest.start))}`;
     banner.style.display = 'block';
@@ -482,18 +491,18 @@ async function checkMotion() {
 }
 function openMotion() {
   $('#motionBanner').style.display = 'none';
-  $('#openMotion').classList.remove('new');
   sheet('#motionSheet', true);
   showClips();
 }
 $('#motionBanner').onclick = openMotion;
-$('#openMotion').onclick = openMotion;
 setTimeout(checkMotion, 500);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) checkMotion(); });
 
 function watch(id, name) {
   watching = id;
   $('#camName').textContent = name;
+  const cam = home && home.cameras.find(c => c.id === id);   // only cameras the recorder saves from have recordings
+  $('#camActions').style.display = cam && cam.clips ? '' : 'none';
   $('#camDot').className = 'dot warn'; $('#camStatus').textContent = 'Connecting…';
   const img = $('#camImg');
   img.onload = () => { if (watching === id) { $('#camDot').className = 'dot ok'; $('#camStatus').textContent = 'Live'; } };
@@ -506,13 +515,9 @@ function unwatch() {   // dropping the image closes the stream, so the TV stops 
   $('#camImg').removeAttribute('src');
   sheet('#camSheet', false);
 }
-$('#camClose').onclick = unwatch;
+$('#camClips').onclick = openMotion;
 $('#camSheet').addEventListener('click', e => { if (e.target.id === 'camSheet') unwatch(); });
 document.addEventListener('visibilitychange', () => { if (document.hidden && watching) unwatch(); });
-$('#camTv').onclick = () => {
-  const id = watching, name = $('#camName').textContent;
-  post('camera-show?id=' + encodeURIComponent(id)).then(async r => { if (r) toast(r.ok ? `Showing ${name} on the TV` : await r.text()); });
-};
 
 // ---- + Add: the same choices as the TV's + Add ----
 const addForm = $('#addForm');
