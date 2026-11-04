@@ -8,6 +8,8 @@
 // It's also an IR remote for things that only have their own (a lamp, a diffuser): its page at http://stick.local
 // teaches it the buttons, and Smart Home presses them through the same API (web.h).
 //
+// For now it's only the diffuser's Power button (VOICE below): a press on A switches it on or off.
+//
 // main/secrets.h (written by setup.sh, never committed) holds the Wi-Fi name and password and the TV's
 // address and phone-remote secret.
 
@@ -94,7 +96,7 @@ static void page_status(const char* big, const char* small, uint16_t color) {
     if (notes) xQueueOverwrite(notes, &n);
 }
 
-static void idle() { show("Hold A", "and say a command"); }
+static void idle() { show("Hold A", "and say a command · tap: Power"); }
 
 static void mic_on();
 
@@ -334,6 +336,8 @@ static void setup_speech() {
     ESP_LOGI(TAG, "speech model %s, %d commands", name, (int) commands().size());
 }
 
+static constexpr bool VOICE = false;   // false: no voice or plugs, A is just the diffuser's Power
+
 extern "C" void app_main() {
     auto cfg = M5.config();
     M5.begin(cfg);
@@ -347,24 +351,34 @@ extern "C" void app_main() {
     // M5Stack's own StickS3 example.
     M5.Power.setExtOutput(true, m5::ext_none);
     vTaskDelay(pdMS_TO_TICKS(100));
-    audio = (int16_t*) heap_caps_malloc(sizeof(int16_t) * RATE * MAX_SECONDS, MALLOC_CAP_SPIRAM);
-    setup_speech();
-    to_recogniser = xQueueCreate(128, sizeof(int));
-    from_recogniser = xQueueCreate(1, sizeof(Heard));
-    xTaskCreatePinnedToCore(recogniser_task, "recogniser", 8192, nullptr, 3, nullptr, 1);
-    mic_on();
+    if (VOICE) {
+        audio = (int16_t*) heap_caps_malloc(sizeof(int16_t) * RATE * MAX_SECONDS, MALLOC_CAP_SPIRAM);
+        setup_speech();
+        to_recogniser = xQueueCreate(128, sizeof(int));
+        from_recogniser = xQueueCreate(1, sizeof(Heard));
+        xTaskCreatePinnedToCore(recogniser_task, "recogniser", 8192, nullptr, 3, nullptr, 1);
+        mic_on();
+    }
     wifi_start();
-    show(wifi_up(15000) ? "Finding plugs…" : "No Wi-Fi yet");
-    if (wifi_up(0)) plugs = kasa::discover();
+    show(wifi_up(15000) ? (VOICE ? "Finding plugs…" : "Wi-Fi on") : "No Wi-Fi yet");
+    if (VOICE && wifi_up(0)) plugs = kasa::discover();
     notes = xQueueCreate(1, sizeof(Note));
     web::start(page_status);
     char found[48];
     snprintf(found, sizeof found, "%d plug%s found", (int) plugs.size(), plugs.size() == 1 ? "" : "s");
-    show("Hold A", found);
+    if (VOICE) show("Hold A", found);
+    else show("Press A", "diffuser on / off");
     last = millis();
     while (true) {
         M5.update();
-        if (M5.BtnA.wasPressed()) {
+        if (VOICE ? M5.BtnA.wasClicked() : M5.BtnA.wasPressed()) {   // a tap on A: the diffuser's Power
+            M5.Display.setBrightness(90);
+            std::vector<uint16_t> s;
+            bool ok = ir::load("Diffuser", s) && ir::send(s);
+            show("Power", ok ? "sent" : "not learned", ok ? TFT_GREEN : TFT_ORANGE);
+            last = millis();
+        }
+        if (VOICE && M5.BtnA.wasHold()) {   // holding A: a voice command
             M5.Display.setBrightness(90);
             int answer;
             const Command* c;
@@ -383,7 +397,7 @@ extern "C" void app_main() {
             idle();
             last = millis();
         }
-        if (M5.BtnB.wasPressed()) {   // B: what it understands
+        if (VOICE && M5.BtnB.wasPressed()) {   // B: what it understands
             M5.Display.setBrightness(90);
             show("Say: plug one on", "good night · volume up");
             last = millis();
