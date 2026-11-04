@@ -8,8 +8,6 @@
 // It's also an IR remote for things that only have their own (a lamp, a diffuser): its page at http://stick.local
 // teaches it the buttons, and Smart Home presses them through the same API (web.h).
 //
-// For now it's only the diffuser's Power button (VOICE below): a press on A switches it on or off.
-//
 // main/secrets.h (written by setup.sh, never committed) holds the Wi-Fi name and password and the TV's
 // address and phone-remote secret.
 
@@ -336,7 +334,7 @@ static void setup_speech() {
     ESP_LOGI(TAG, "speech model %s, %d commands", name, (int) commands().size());
 }
 
-static constexpr bool VOICE = false;   // false: no voice or plugs, A is just the diffuser's Power
+static constexpr bool VOICE = true;   // false: no voice or plugs, A is just the diffuser's Power
 
 extern "C" void app_main() {
     auto cfg = M5.config();
