@@ -22,7 +22,6 @@ namespace ir {
 static const char* TAG = "ir";
 static const gpio_num_t TX = GPIO_NUM_46, RX = GPIO_NUM_42;
 static const int MAX_SYMBOLS = 192;      // the RX channel's memory: a long air-conditioner frame fits
-static const int MIN_PULSES = 16;        // fewer is noise, or a "still held" repeat code
 static const int MAX_BUTTONS = 32;
 
 static rmt_channel_handle_t rx_ch, tx_ch;
@@ -150,9 +149,15 @@ bool learn(std::vector<uint16_t>& signal, int timeout_ms) {
             rmt_enable(rx_ch);
             break;
         }
-        signal = clean(pulses(e.received_symbols, e.num_symbols));
-        ESP_LOGI(TAG, "received %d symbols, %d pulses", (int) e.num_symbols, (int) signal.size());
-        got = (int) signal.size() >= MIN_PULSES;
+        // Only a whole code counts: a valid NEC code, or a long frame of some other kind. Fragments (a weak or
+        // half-caught press, a "still held" repeat) are skipped, and the next press is waited for.
+        std::vector<uint16_t> raw = pulses(e.received_symbols, e.num_symbols);
+        std::string code;
+        std::vector<uint16_t> c = clean(raw, &code);
+        ESP_LOGI(TAG, "received %d pulses%s%s", (int) raw.size(), code.empty() ? "" : ", NEC ", code.c_str());
+        if (!code.empty()) signal = c;
+        else if ((int) raw.size() >= 60) signal = raw;
+        got = !code.empty() || (int) raw.size() >= 60;
     }
     xSemaphoreGive(busy);
     return got;
@@ -212,12 +217,20 @@ bool loopback(const std::vector<uint16_t>& signal, std::vector<uint16_t>& heard)
 
 bool send(const std::vector<uint16_t>& signal, int times) {
     if (!tx_ch || signal.empty() || xSemaphoreTake(busy, pdMS_TO_TICKS(3000)) != pdTRUE) return false;
-    auto s = symbols(clean(signal));   // buttons learned before clean() existed get it here
+    std::string code;
+    auto s = symbols(clean(signal, &code));   // buttons learned before clean() existed get it here
+    // An NEC press as a real remote sends it: the code, then "still held" repeats every 108 ms.
+    auto repeat = symbols({9000, 2250, 560});
     rmt_transmit_config_t tc{};
     esp_err_t err = ESP_OK;
     for (int t = 0; t < std::max(1, std::min(times, 20)) && err == ESP_OK; t++) {
         err = rmt_transmit(tx_ch, copy, s.data(), s.size() * sizeof s[0], &tc);
         if (err == ESP_OK) err = rmt_tx_wait_all_done(tx_ch, 1000);
+        for (int r = 0; r < 2 && !code.empty() && err == ESP_OK; r++) {
+            vTaskDelay(pdMS_TO_TICKS(r ? 96 : 40));
+            err = rmt_transmit(tx_ch, copy, repeat.data(), repeat.size() * sizeof repeat[0], &tc);
+            if (err == ESP_OK) err = rmt_tx_wait_all_done(tx_ch, 1000);
+        }
         if (t + 1 < times) vTaskDelay(pdMS_TO_TICKS(40));
     }
     bool ok = err == ESP_OK;

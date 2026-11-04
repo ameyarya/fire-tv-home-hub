@@ -94,7 +94,7 @@ async function send(n,l){$('eye').classList.add('lit');setTimeout(()=>$('eye').c
 async function del(n,l){if(!confirm('Forget '+l+'? It goes back to “not learned”.'))return;
   await fetch('/ir/delete?name='+encodeURIComponent(n),{method:'POST'});load()}
 async function learnKey(n,l,k){if(document.querySelector('.k.wait'))return;
-  k&&k.classList.add('wait');msg('Press '+l+' on the remote, pointed at the top of the stick (30 cm or more away)…');
+  k&&k.classList.add('wait');msg('Press '+l+' on the remote a few times, pointed at the top of the stick from 30 cm to 1 m away…');
   try{const r=await fetch('/ir/learn?name='+encodeURIComponent(n),{method:'POST'});
     if(r.ok){msg('Learned '+l+'. Tap it to try it.','ok');return load()}
     msg('Nothing came through for '+l+'. Aim at the stick’s top and tap it again.','bad')}
@@ -200,6 +200,7 @@ static esp_err_t send(httpd_req_t* r) {
     std::vector<uint16_t> signal;
     if (!ir::load(name, signal)) return reply(r, "404 Not Found", "{\"error\":\"no such button\"}");
     bool ok = ir::send(signal, times.empty() ? 1 : atoi(times.c_str()));
+    status(name.c_str(), ok ? "sent" : "didn't send", ok ? 0x07E0 : 0xFD20);   // the screen confirms each press
     return reply(r, ok ? "200 OK" : "500 Internal Server Error", ok ? "{\"ok\":true}" : "{\"error\":\"send\"}");
 }
 
