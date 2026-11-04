@@ -1,6 +1,9 @@
 # Name,   Type, SubType, Offset,   Size
+# nvs keeps its place, so learned IR buttons and settings survive the change to two app slots
 nvs,      data, nvs,     0x9000,   0x6000
-phy_init, data, phy,     0xf000,   0x1000
-factory,  app,  factory, 0x10000,  3M
+otadata,  data, ota,     0xf000,   0x2000
+# two app slots: an update over Wi-Fi (./ota.sh) goes into the other one, then the stick restarts into it
+ota_0,    app,  ota_0,   0x20000,  0x220000
+ota_1,    app,  ota_1,   0x240000, 0x220000
 # ESP-SR's speech models (flashed from srmodels.bin by idf.py flash)
-model,    data, spiffs,  ,         4M
+model,    data, spiffs,  0x460000, 0x3A0000

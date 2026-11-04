@@ -79,11 +79,19 @@ static void show(const char* big, const char* small = "", uint16_t color = TFT_W
     }
 }
 
-/** The stick's page is using it (learning a button): wakes the screen to say so. */
+/** What the stick's page asks the screen to say ("Power: sent"); drawn by the main loop, which owns the screen. */
+struct Note {
+    char big[40], small[40];
+    uint16_t color;
+};
+static QueueHandle_t notes;
+
 static void page_status(const char* big, const char* small, uint16_t color) {
-    M5.Display.setBrightness(90);
-    show(big, small, color);
-    last = millis();
+    Note n{};
+    strlcpy(n.big, big, sizeof n.big);
+    strlcpy(n.small, small, sizeof n.small);
+    n.color = color;
+    if (notes) xQueueOverwrite(notes, &n);
 }
 
 static void idle() { show("Hold A", "and say a command"); }
@@ -348,6 +356,7 @@ extern "C" void app_main() {
     wifi_start();
     show(wifi_up(15000) ? "Finding plugs…" : "No Wi-Fi yet");
     if (wifi_up(0)) plugs = kasa::discover();
+    notes = xQueueCreate(1, sizeof(Note));
     web::start(page_status);
     char found[48];
     snprintf(found, sizeof found, "%d plug%s found", (int) plugs.size(), plugs.size() == 1 ? "" : "s");
@@ -377,6 +386,12 @@ extern "C" void app_main() {
         if (M5.BtnB.wasPressed()) {   // B: what it understands
             M5.Display.setBrightness(90);
             show("Say: plug one on", "good night · volume up");
+            last = millis();
+        }
+        Note n;
+        if (notes && xQueueReceive(notes, &n, 0) == pdTRUE) {
+            M5.Display.setBrightness(90);
+            show(n.big, n.small, n.color);
             last = millis();
         }
         if (millis() - last > 20000) M5.Display.setBrightness(0);  // screen off when idle

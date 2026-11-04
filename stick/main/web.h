@@ -8,6 +8,7 @@
 //   POST /ir/send?name=On&times=3
 //   POST /ir/delete?name=On
 //   POST /ir/check?name=On       its signal, and what the stick's own receiver hears as it sends it
+//   POST /update?key=…          new firmware over Wi-Fi (./ota.sh), with the stick's secret
 //   POST /ir/probe               counts the receiver's flickers for 5 s while any remote is pressed: a check
 // Like the Kasa plugs, it's open to the home Wi-Fi only.
 namespace web {

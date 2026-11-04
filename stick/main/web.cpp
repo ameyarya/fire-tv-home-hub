@@ -1,18 +1,25 @@
 #include "web.h"
 
 #include <cstdio>
+#include <algorithm>
+#include <cctype>
 #include <cstdlib>
+#include <strings.h>
 #include <string>
 #include <vector>
 
 #include <esp_http_server.h>
+#include <esp_ota_ops.h>
+#include <esp_system.h>
 #include <mdns.h>
 
 #include "ir.h"
+#include "secrets.h"
 
 namespace web {
 
 static Status status;
+static std::string label(const std::string& name);
 
 static const char PAGE[] = R"HTML(<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -152,7 +159,7 @@ static esp_err_t list(httpd_req_t* r) {
 static esp_err_t learn(httpd_req_t* r) {
     std::string name = param(r, "name");
     if (name.empty()) return reply(r, "400 Bad Request", "{\"error\":\"name\"}");
-    status(name.c_str(), "press it on the remote", 0xFFE0);
+    status(label(name).c_str(), "press it on the remote", 0xFFE0);
     std::vector<uint16_t> signal;
     if (!ir::learn(signal, 15000)) {
         status("Nothing came", "try again from the page", 0xFD20);
@@ -162,7 +169,7 @@ static esp_err_t learn(httpd_req_t* r) {
         status("Couldn't keep it", "too many buttons?", 0xFD20);
         return reply(r, "507 Insufficient Storage", "{\"error\":\"not saved\"}");
     }
-    status(name.c_str(), "learned", 0x07E0);
+    status(label(name).c_str(), "learned", 0x07E0);
     char j[64];
     snprintf(j, sizeof j, "{\"ok\":true,\"pulses\":%d}", (int) signal.size());
     return reply(r, "200 OK", j);
@@ -195,12 +202,55 @@ static esp_err_t check(httpd_req_t* r) {
     return reply(r, "200 OK", j.c_str());
 }
 
+/** A button's name as the remote shows it: "Diffuser mist" is Mist, "Diffuser" alone is its Power. */
+static std::string label(const std::string& name) {
+    if (strcasecmp(name.c_str(), "Diffuser") == 0) return "Power";
+    if (strncasecmp(name.c_str(), "Diffuser ", 9) == 0 && name.size() > 9) {
+        std::string l = name.substr(9);
+        l[0] = toupper((unsigned char) l[0]);
+        return l;
+    }
+    return name;
+}
+
+/** New firmware over Wi-Fi (./ota.sh): written to the other app slot, then the stick restarts into it. Needs the
+ *  stick's secret (the TV's phone-remote secret from setup.sh), so only you can replace it. */
+static esp_err_t update(httpd_req_t* r) {
+    if (param(r, "key") != TV_SECRET) return reply(r, "403 Forbidden", "{\"error\":\"key\"}");
+    const esp_partition_t* slot = esp_ota_get_next_update_partition(nullptr);
+    esp_ota_handle_t ota;
+    if (!slot || esp_ota_begin(slot, OTA_WITH_SEQUENTIAL_WRITES, &ota) != ESP_OK)
+        return reply(r, "500 Internal Server Error", "{\"error\":\"no slot\"}");
+    status("Updating", "don't unplug", 0xFFE0);
+    static char buf[4096];
+    int left = r->content_len;
+    while (left > 0) {
+        int n = httpd_req_recv(r, buf, std::min(left, (int) sizeof buf));
+        if (n == HTTPD_SOCK_ERR_TIMEOUT) continue;
+        if (n <= 0 || esp_ota_write(ota, buf, n) != ESP_OK) {
+            esp_ota_abort(ota);
+            status("Update failed", "still on the old one", 0xFD20);
+            return reply(r, "500 Internal Server Error", "{\"error\":\"write\"}");
+        }
+        left -= n;
+    }
+    if (esp_ota_end(ota) != ESP_OK || esp_ota_set_boot_partition(slot) != ESP_OK) {
+        status("Update failed", "still on the old one", 0xFD20);
+        return reply(r, "500 Internal Server Error", "{\"error\":\"image\"}");
+    }
+    reply(r, "200 OK", "{\"ok\":true}");
+    status("Updated", "restarting", 0x07E0);
+    vTaskDelay(pdMS_TO_TICKS(500));
+    esp_restart();
+    return ESP_OK;
+}
+
 static esp_err_t send(httpd_req_t* r) {
     std::string name = param(r, "name"), times = param(r, "times");
     std::vector<uint16_t> signal;
     if (!ir::load(name, signal)) return reply(r, "404 Not Found", "{\"error\":\"no such button\"}");
     bool ok = ir::send(signal, times.empty() ? 1 : atoi(times.c_str()));
-    status(name.c_str(), ok ? "sent" : "didn't send", ok ? 0x07E0 : 0xFD20);   // the screen confirms each press
+    status(label(name).c_str(), ok ? "sent" : "didn't send", ok ? 0x07E0 : 0xFD20);   // the screen confirms each press
     return reply(r, ok ? "200 OK" : "500 Internal Server Error", ok ? "{\"ok\":true}" : "{\"error\":\"send\"}");
 }
 
@@ -213,6 +263,7 @@ void start(Status s) {
     status = s;
     httpd_config_t cfg = HTTPD_DEFAULT_CONFIG();
     cfg.stack_size = 8192;
+    cfg.recv_wait_timeout = 20;
     httpd_handle_t server;
     if (httpd_start(&server, &cfg) != ESP_OK) return;
     const httpd_uri_t routes[] = {
@@ -223,6 +274,7 @@ void start(Status s) {
         {"/ir/delete", HTTP_POST, forget, nullptr},
         {"/ir/probe", HTTP_POST, probe, nullptr},
         {"/ir/check", HTTP_POST, check, nullptr},
+        {"/update", HTTP_POST, update, nullptr},
     };
     for (const auto& u : routes) httpd_register_uri_handler(server, &u);
     if (mdns_init() == ESP_OK) {   // http://stick.local
