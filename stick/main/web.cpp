@@ -50,32 +50,20 @@ h1{font-size:30px;font-weight:700;letter-spacing:-.5px;margin:0}
   color:#fff;font:600 15px/22px system-ui}
 .edit .k:not(.new) .x{display:block}.edit .k:not(.new){animation:wob .25s infinite alternate}
 @keyframes wob{from{transform:rotate(-3deg)}to{transform:rotate(3deg)}}
-.more{max-width:420px;margin:28px auto 0;display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
-.more .k{width:auto;height:auto;border-radius:999px;padding:10px 16px;font:500 14px system-ui}
-.more .k em{position:static;transform:none;margin-left:6px}
-.tools{max-width:420px;margin:16px auto 0;display:flex;gap:10px}
-.tools button{flex:1;border:0;border-radius:16px;background:var(--glass);border:1px solid var(--edge);color:var(--text);
-  font:500 14px system-ui;padding:14px 10px}
 .toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 20px);transform:translate(-50%,calc(100% + 60px));opacity:0;width:min(420px,calc(100% - 32px));
   padding:14px 16px;border-radius:18px;background:#1c1c1ef2;border:1px solid var(--edge);backdrop-filter:blur(20px);
   -webkit-backdrop-filter:blur(20px);font-size:14px;transition:transform .3s cubic-bezier(.2,.9,.3,1.2),opacity .2s;box-shadow:0 12px 40px #000a}
 .toast.on{transform:translate(-50%,0);opacity:1}.toast.ok{border-color:#30d15866}.toast.bad{border-color:#ff453a66}
-dialog{border:0;border-radius:24px;background:#1c1c1e;color:var(--text);padding:20px;width:min(360px,calc(100% - 32px))}
-dialog::backdrop{background:#0008;backdrop-filter:blur(4px)}
-dialog h3{margin:0 0 12px}dialog input{width:100%;background:#0b0b0f;border:1px solid var(--edge);border-radius:12px;color:var(--text);
-  font:inherit;padding:12px}dialog menu{display:flex;gap:10px;justify-content:flex-end;margin:16px 0 0;padding:0}
-dialog button{border:0;border-radius:12px;font:600 15px system-ui;padding:10px 16px;background:#2c2c2e;color:var(--text)}
-dialog button.go{background:var(--blue)}
+.more{max-width:420px;margin:28px auto 0;display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.more .k{width:auto;height:auto;border-radius:999px;padding:10px 16px;font:500 14px system-ui}
+.more .k em{position:static;transform:none;margin-left:6px}
 </style></head><body>
 <header><h1>Diffuser</h1><button class="pill" id="ed">Edit</button></header>
 <p class="sub">Tap a button to press it. One marked “not learned”: tap it, then press that button on the real remote.</p>
 <div class="remote"><span class="ir" id="eye"></span><div class="keys" id="grid"></div></div>
 <p class="sub" style="text-align:center;margin-top:18px" id="count"></p>
 <div class="more" id="more"></div>
-<div class="tools"><button id="probe">Test receiver</button><button id="addBtn">Add a button</button></div>
 <div class="toast" id="toast"></div>
-<dialog id="dlg"><h3>New button</h3><input id="name" placeholder="Its name, e.g. Mist high" maxlength="40">
-<menu><button value="cancel" id="cancel">Cancel</button><button class="go" id="ok">Learn</button></menu></dialog>
 <script>
 const $=id=>document.getElementById(id);
 let tt;function msg(t,c=''){const e=$('toast');e.textContent=t;e.className='toast on '+c;clearTimeout(tt);
@@ -112,16 +100,6 @@ async function learnKey(n,l,k){if(document.querySelector('.k.wait'))return;
     msg('Nothing came through for '+l+'. Aim at the stick’s top and tap it again.','bad')}
   catch(e){msg('The stick didn’t answer.','bad')}
   k&&k.classList.remove('wait')}
-function addKey(){$('name').value='';$('dlg').showModal();$('name').focus()}
-$('ok').onclick=e=>{e.preventDefault();const n=$('name').value.trim();if(!n)return;$('dlg').close();learnKey(n,n,null)};
-$('cancel').onclick=e=>{e.preventDefault();$('dlg').close()};
-$('name').onkeydown=e=>{if(e.key=='Enter')$('ok').click()};
-$('addBtn').onclick=addKey;
-$('probe').onclick=async()=>{$('probe').disabled=true;msg('For 5 seconds: hold any button on the remote, pointed at the stick…');
-  try{const n=(await (await fetch('/ir/probe',{method:'POST'})).json()).changes;
-    msg(n>20?'The stick sees this remote ('+n+' flickers).':'The stick saw nothing ('+n+'). Is the remote infrared?',n>20?'ok':'bad')}
-  catch(e){msg('The stick didn’t answer.','bad')}
-  $('probe').disabled=false};
 $('ed').onclick=()=>{const on=document.body.classList.toggle('edit');$('ed').textContent=on?'Done':'Edit'};
 load();
 </script></body></html>)HTML";
