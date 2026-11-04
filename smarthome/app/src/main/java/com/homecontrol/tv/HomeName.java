@@ -17,12 +17,13 @@ import java.util.Locale;
 /**
  * Answers multicast DNS for {@code home.local} with the TV's address, so the phone page opens at
  * http://home.local:8765. Android's own service discovery can't claim a host name, so this is a small responder
- * of its own: it answers only address questions for that one name, and announces it when it starts.
+ * of its own: it answers only address questions for that one name, and announces it when it starts. Every answer
+ * also says the name has no IPv6 address (an NSEC record), or phones wait for one before opening the page.
  */
 final class HomeName {
 
     static final String NAME = "home.local";
-    private static final int PORT = 5353, TTL_S = 120, TYPE_A = 1, TYPE_ANY = 255, CLASS_IN = 1;
+    private static final int PORT = 5353, TTL_S = 120, TYPE_A = 1, TYPE_AAAA = 28, TYPE_NSEC = 47, TYPE_ANY = 255, CLASS_IN = 1;
     private static final String GROUP = "224.0.0.251";
 
     private final Context app;
@@ -132,7 +133,7 @@ final class HomeName {
             int type = ((m[end] & 0xff) << 8) | (m[end + 1] & 0xff);
             int cls = ((m[end + 2] & 0xff) << 8) | (m[end + 3] & 0xff);
             at = end + 4;
-            if ((type == TYPE_A || type == TYPE_ANY) && (cls & 0x7fff) == CLASS_IN
+            if ((type == TYPE_A || type == TYPE_AAAA || type == TYPE_ANY) && (cls & 0x7fff) == CLASS_IN
                     && name.toString().toLowerCase(Locale.US).equals(NAME)) return cls;
         }
         return -1;
@@ -157,10 +158,10 @@ final class HomeName {
         return -1;
     }
 
-    /** A response giving home.local's address. */
+    /** A response giving home.local's address, and saying that's its only one (no IPv6). */
     static byte[] answer(int id, byte[] ip) {
         ByteArrayOutputStream b = new ByteArrayOutputStream(64);
-        int[] header = {id >> 8, id, 0x84, 0, 0, 0, 0, 1, 0, 0, 0, 0};   // authoritative answer, one record
+        int[] header = {id >> 8, id, 0x84, 0, 0, 0, 0, 1, 0, 0, 0, 1};   // authoritative answer, one record, one more
         for (int x : header) b.write(x & 0xff);
         for (String label : NAME.split("\\.")) {
             b.write(label.length());
@@ -170,6 +171,9 @@ final class HomeName {
         int[] rest = {0, TYPE_A, 0x80, CLASS_IN, 0, 0, TTL_S >> 8, TTL_S & 0xff, 0, 4};   // cache-flush, TTL, length
         for (int x : rest) b.write(x & 0xff);
         b.write(ip, 0, 4);
+        int[] nsec = {0xc0, 12, 0, TYPE_NSEC, 0x80, CLASS_IN, 0, 0, TTL_S >> 8, TTL_S & 0xff, 0, 5,
+                0xc0, 12, 0, 1, 0x40};   // home.local (by pointer), then the types it has: A alone
+        for (int x : nsec) b.write(x & 0xff);
         return b.toByteArray();
     }
 }

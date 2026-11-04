@@ -34,8 +34,8 @@ public class HomeNameTest {
         assertTrue((HomeName.asks(direct, direct.length) & 0x8000) != 0);
         byte[] other = query("door-cam.local", 1, 1);
         assertEquals(-1, HomeName.asks(other, other.length));
-        byte[] aaaa = query("home.local", 28, 1);
-        assertEquals(-1, HomeName.asks(aaaa, aaaa.length));
+        byte[] aaaa = query("home.local", 28, 1);   // answered too, to say there's no IPv6 address
+        assertEquals(1, HomeName.asks(aaaa, aaaa.length));
     }
 
     @Test
@@ -54,8 +54,11 @@ public class HomeNameTest {
         byte[] r = HomeName.answer(0x1234, ip);
         assertEquals(0x12, r[0]);
         assertEquals(0x34, r[1]);
-        byte[] tail = new byte[4];
-        System.arraycopy(r, r.length - 4, tail, 0, 4);
-        assertArrayEquals(ip, tail);
+        byte[] got = new byte[4];
+        System.arraycopy(r, 34, got, 0, 4);   // after the header, home.local and the record's fields
+        assertArrayEquals(ip, got);
+        byte[] nsec = new byte[5];
+        System.arraycopy(r, r.length - 5, nsec, 0, 5);
+        assertArrayEquals(new byte[]{(byte) 0xc0, 12, 0, 1, 0x40}, nsec);   // only an A record
     }
 }
