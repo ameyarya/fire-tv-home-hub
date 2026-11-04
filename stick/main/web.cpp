@@ -29,32 +29,30 @@ header{display:flex;align-items:center;justify-content:space-between;max-width:4
 h1{font-size:30px;font-weight:700;letter-spacing:-.5px;margin:0}
 .pill{border:0;border-radius:999px;background:var(--glass);color:var(--blue);font:600 15px system-ui;padding:8px 14px}
 .sub{max-width:420px;margin:0 auto 22px;color:var(--dim);font-size:14px}
-.remote{max-width:420px;margin:0 auto;padding:22px 18px 24px;border-radius:28px;background:var(--glass);
-  border:1px solid var(--edge);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px)}
-.top{display:flex;align-items:center;gap:10px;margin-bottom:20px}
-.top h2{flex:1;margin:0;font-size:19px;font-weight:600}
-.dot{width:8px;height:8px;border-radius:50%;background:#3a3a3c;transition:.15s}.dot.lit{background:var(--accent);box-shadow:0 0 12px var(--accent)}
-.count{color:var(--dim);font-size:13px}
-.keys{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-.k{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;aspect-ratio:1;
-  border:0;border-radius:22px;background:#ffffff10;color:var(--text);font:500 13px system-ui;cursor:pointer;
-  transition:transform .12s,background .2s}
-.k:active{transform:scale(.94);background:#ffffff1c}
-.k svg{width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.k.power{grid-column:1/-1;aspect-ratio:auto;height:88px;flex-direction:row;gap:12px;font-size:16px;
-  background:linear-gradient(135deg,#ff453a,#d70015);box-shadow:0 10px 30px #ff453a40}
-.k.power svg{width:30px;height:30px}
-.k.new{background:transparent;outline:1.5px dashed #ffffff26;outline-offset:-1.5px;color:var(--dim)}
-.k.power.new{background:transparent;box-shadow:none}
-.k em{position:absolute;bottom:9px;font:600 10px system-ui;font-style:normal;letter-spacing:.3px;text-transform:uppercase;color:var(--amber)}
-.k.power em{position:static}
-.k.wait{outline:2px solid #ffd60a;color:#ffd60a;animation:pulse 1.1s infinite}
-@keyframes pulse{50%{box-shadow:0 0 0 8px #ffd60a22}}
-.k .x{position:absolute;top:-6px;right:-6px;display:none;width:24px;height:24px;border-radius:50%;background:var(--red);
-  color:#fff;font:600 16px/24px system-ui}
+.remote{position:relative;width:180px;height:430px;margin:8px auto 0;border-radius:90px;
+  background:linear-gradient(160deg,#2b2b2d 0%,#141415 55%,#0c0c0d 100%);
+  box-shadow:0 30px 60px #000c,inset 2px 3px 2px #ffffff12,inset -3px -6px 12px #0009}
+.ir{position:absolute;top:10px;left:50%;width:8px;height:5px;margin-left:-4px;border-radius:3px;background:#3a3a3c;transition:.15s}
+.ir.lit{background:#ff6b5f;box-shadow:0 0 10px #ff453a}
+.keys{position:absolute;top:96px;left:0;right:0;display:grid;grid-template-columns:repeat(2,58px);justify-content:center;
+  column-gap:30px;row-gap:56px}
+.k{position:relative;width:58px;height:58px;border:0;border-radius:50%;padding:0;cursor:pointer;color:#f2f2f2;
+  background:radial-gradient(circle at 40% 30%,#2e2e30,#151516 75%);
+  box-shadow:0 3px 6px #000c,inset 0 1px 1px #ffffff1c,inset 0 -2px 3px #000a;transition:transform .1s}
+.k:active{transform:scale(.92)}
+.k svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.k.new svg{opacity:.35}
+.k em{position:absolute;top:64px;left:50%;transform:translateX(-50%);white-space:nowrap;font:600 9px system-ui;font-style:normal;
+  letter-spacing:.4px;text-transform:uppercase;color:var(--amber)}
+.k.wait{box-shadow:0 0 0 3px #ffd60a,0 3px 6px #000c;animation:pulse 1.1s infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 9px #ffd60a33,0 3px 6px #000c}}
+.k .x{position:absolute;top:-6px;right:-6px;display:none;width:22px;height:22px;border-radius:50%;background:var(--red);
+  color:#fff;font:600 15px/22px system-ui}
 .edit .k:not(.new) .x{display:block}.edit .k:not(.new){animation:wob .25s infinite alternate}
-@keyframes wob{from{transform:rotate(-1.2deg)}to{transform:rotate(1.2deg)}}
-.k.add{background:transparent;outline:1.5px dashed #ffffff1a;outline-offset:-1.5px;color:var(--dim)}
+@keyframes wob{from{transform:rotate(-3deg)}to{transform:rotate(3deg)}}
+.more{max-width:420px;margin:28px auto 0;display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.more .k{width:auto;height:auto;border-radius:999px;padding:10px 16px;font:500 14px system-ui}
+.more .k em{position:static;transform:none;margin-left:6px}
 .tools{max-width:420px;margin:16px auto 0;display:flex;gap:10px}
 .tools button{flex:1;border:0;border-radius:16px;background:var(--glass);border:1px solid var(--edge);color:var(--text);
   font:500 14px system-ui;padding:14px 10px}
@@ -71,8 +69,9 @@ dialog button.go{background:var(--blue)}
 </style></head><body>
 <header><h1>Diffuser</h1><button class="pill" id="ed">Edit</button></header>
 <p class="sub">Tap a button to press it. One marked “not learned”: tap it, then press that button on the real remote.</p>
-<section class="remote"><div class="top"><span class="dot" id="eye"></span><h2>Remote</h2><span class="count" id="count"></span></div>
-<div class="keys" id="grid"></div></section>
+<div class="remote"><span class="ir" id="eye"></span><div class="keys" id="grid"></div></div>
+<p class="sub" style="text-align:center;margin-top:18px" id="count"></p>
+<div class="more" id="more"></div>
 <div class="tools"><button id="probe">Test receiver</button><button id="addBtn">Add a button</button></div>
 <div class="toast" id="toast"></div>
 <dialog id="dlg"><h3>New button</h3><input id="name" placeholder="Its name, e.g. Mist high" maxlength="40">
@@ -81,29 +80,27 @@ dialog button.go{background:var(--blue)}
 const $=id=>document.getElementById(id);
 let tt;function msg(t,c=''){const e=$('toast');e.textContent=t;e.className='toast on '+c;clearTimeout(tt);
   if(c)tt=setTimeout(()=>e.classList.remove('on'),3500)}
-const I={power:'<path d="M12 3v8"/><path d="M6.3 7.3a8 8 0 1 0 11.4 0"/>',
- mist:'<path d="M12 3s-5 5.6-5 9.2A5 5 0 0 0 12 17a5 5 0 0 0 5-4.8C17 8.6 12 3 12 3z"/><path d="M5 21h14"/>',
- light:'<path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.3 1 2.2h5.2c0-.9.4-1.7 1-2.2A6 6 0 0 0 12 3z"/>',
- colour:'<circle cx="12" cy="12" r="9"/><path d="M12 3v18"/><path d="M12 12 4.2 7.5"/><path d="m12 12 7.8-4.5"/>',
- brightness:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
- timer:'<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5"/><path d="M9 2h6"/>',
- other:'<circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="9"/>',add:'<path d="M12 5v14M5 12h14"/>'};
+const I={power:'<path d="M12 4v7"/><path d="M7 7.5a7 7 0 1 0 10 0"/>',
+ mist:'<path d="M8 5c-1.5 2 1.5 3.5 0 5.5s1.5 3.5 0 5.5 1 2.5 0 3"/><path d="M12 5c-1.5 2 1.5 3.5 0 5.5s1.5 3.5 0 5.5 1 2.5 0 3"/><path d="M16 5c-1.5 2 1.5 3.5 0 5.5s1.5 3.5 0 5.5 1 2.5 0 3"/>',
+ timer:'<circle cx="12" cy="12" r="8"/><path d="M12 7.5V12h3.5"/>',
+ light:'<circle cx="12" cy="12" r="3.5"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8"/>',
+ other:'<circle cx="12" cy="12" r="3"/>'};
 const svg=i=>'<svg viewBox="0 0 24 24">'+(I[i]||I.other)+'</svg>';
-// The diffuser remote's buttons, each kept on the stick under its name; other learned buttons follow them.
-const KEYS=[['Diffuser','Power','power'],['Diffuser mist','Mist','mist'],['Diffuser light','Light','light'],
-  ['Diffuser colour','Colour','colour'],['Diffuser brightness','Brightness','brightness'],['Diffuser timer','Timer','timer']];
+// The diffuser remote's four buttons as it lays them out (2 by 2), each kept on the stick under its name.
+const KEYS=[['Diffuser','Power','power'],['Diffuser mist','Mist','mist'],['Diffuser timer','Timer','timer'],['Diffuser light','Light','light']];
 let names=[];
 const has=n=>names.some(x=>x.toLowerCase()==n.toLowerCase()), editing=()=>document.body.classList.contains('edit');
 async function load(){try{names=(await (await fetch('/ir')).json()).buttons}catch(e){msg('The stick didn’t answer.','bad')}draw()}
-function key(name,label,icon,cls){const learned=has(name),k=document.createElement('button');
-  k.className='k '+cls+(learned?'':' new');k.innerHTML=svg(icon)+'<span></span>'+(learned?'<b class="x">×</b>':'<em>Not learned</em>');
-  k.querySelector('span').textContent=label;
-  k.onclick=()=>learned?(editing()?del(name,label):send(name,label)):learnKey(name,label,k);$('grid').append(k)}
-function draw(){$('grid').innerHTML='';
-  KEYS.forEach(([n,l,i])=>key(n,l,i,i=='power'?'power':''));
-  for(const n of names.filter(n=>!KEYS.some(([k])=>k.toLowerCase()==n.toLowerCase())))key(n,n,'other','');
-  const a=document.createElement('button');a.className='k add';a.innerHTML=svg('add')+'<span>Add</span>';a.onclick=addKey;$('grid').append(a);
-  $('count').textContent=KEYS.filter(([n])=>has(n)).length+' of '+KEYS.length+' learned'}
+function key(name,label,icon,cls,into){const learned=has(name),k=document.createElement('button');
+  k.className='k '+cls+(learned?'':' new');k.title=label;k.setAttribute('aria-label',label);
+  k.innerHTML=(icon?svg(icon):'<span></span>')+(learned?'<b class="x">×</b>':'<em>Not learned</em>');
+  if(!icon)k.querySelector('span').textContent=label;
+  k.onclick=()=>learned?(editing()?del(name,label):send(name,label)):learnKey(name,label,k);$(into).append(k)}
+function draw(){$('grid').innerHTML='';$('more').innerHTML='';
+  KEYS.forEach(([n,l,i])=>key(n,l,i,'','grid'));
+  for(const n of names.filter(n=>!KEYS.some(([k])=>k.toLowerCase()==n.toLowerCase())))key(n,n,'','','more');
+  const left=KEYS.filter(([n])=>!has(n)).length;
+  $('count').textContent=left?left+' of '+KEYS.length+' buttons still to teach':'All buttons learned'}
 async function send(n,l){$('eye').classList.add('lit');setTimeout(()=>$('eye').classList.remove('lit'),250);
   const r=await fetch('/ir/send?name='+encodeURIComponent(n),{method:'POST'});if(!r.ok)msg('Couldn’t send '+l+'.','bad')}
 async function del(n,l){if(!confirm('Forget '+l+'? It goes back to “not learned”.'))return;
