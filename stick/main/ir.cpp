@@ -9,6 +9,9 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
 #include <freertos/semphr.h>
+#include <driver/gpio.h>
+#include <esp_log.h>
+#include <esp_rom_sys.h>
 #include <nvs.h>
 
 // The receiver (G42) hands over the signal already stripped of its carrier, low while the remote's LED is on; the
@@ -16,6 +19,7 @@
 // peripheral, the only way the StickS3's receiver can be read.
 namespace ir {
 
+static const char* TAG = "ir";
 static const gpio_num_t TX = GPIO_NUM_46, RX = GPIO_NUM_42;
 static const int MAX_SYMBOLS = 192;      // the RX channel's memory: a long air-conditioner frame fits
 static const int MIN_PULSES = 16;        // fewer is noise, or a "still held" repeat code
@@ -41,7 +45,12 @@ bool begin() {
     rx.clk_src = RMT_CLK_SRC_DEFAULT;
     rx.resolution_hz = 1000000;   // 1 µs ticks
     rx.mem_block_symbols = MAX_SYMBOLS;
-    if (rmt_new_rx_channel(&rx, &rx_ch) != ESP_OK) return false;
+    esp_err_t err = rmt_new_rx_channel(&rx, &rx_ch);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "receiver: %s", esp_err_to_name(err));
+        rx_ch = nullptr;
+        return false;
+    }
     rmt_rx_event_callbacks_t cb{};
     cb.on_recv_done = on_received;
     rmt_rx_register_event_callbacks(rx_ch, &cb, received);
@@ -53,7 +62,13 @@ bool begin() {
     tx.resolution_hz = 1000000;
     tx.mem_block_symbols = 48;
     tx.trans_queue_depth = 4;
-    if (rmt_new_tx_channel(&tx, &tx_ch) != ESP_OK) return false;
+    err = rmt_new_tx_channel(&tx, &tx_ch);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "LED: %s", esp_err_to_name(err));
+        tx_ch = nullptr;
+        return false;
+    }
+    ESP_LOGI(TAG, "ready: LED G%d, receiver G%d (idle level %d)", TX, RX, gpio_get_level(RX));
     rmt_carrier_config_t carrier{};
     carrier.frequency_hz = 38000;
     carrier.duty_cycle = 0.33f;
@@ -104,10 +119,26 @@ bool learn(std::vector<uint16_t>& signal, int timeout_ms) {
             break;
         }
         signal = pulses(e.received_symbols, e.num_symbols);
+        ESP_LOGI(TAG, "received %d symbols, %d pulses", (int) e.num_symbols, (int) signal.size());
         got = (int) signal.size() >= MIN_PULSES;
     }
     xSemaphoreGive(busy);
     return got;
+}
+
+int probe(int ms) {
+    int changes = 0, was = gpio_get_level(RX);
+    for (int t = 0; t < ms; t++) {
+        for (int i = 0; i < 40; i++) {   // every 25 µs: a remote's shortest pulse is about 500 µs
+            int now = gpio_get_level(RX);
+            if (now != was) changes++;
+            was = now;
+            esp_rom_delay_us(25);
+        }
+        vTaskDelay(1);   // 1 ms tick: let the rest of the stick run
+    }
+    ESP_LOGI(TAG, "probe: %d changes in %d ms (idle level %d)", changes, ms, gpio_get_level(RX));
+    return changes;
 }
 
 bool send(const std::vector<uint16_t>& signal, int times) {

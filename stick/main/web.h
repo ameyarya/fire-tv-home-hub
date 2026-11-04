@@ -7,6 +7,7 @@
 //   POST /ir/learn?name=On       waits up to 15 s for that button on the real remote, then keeps it
 //   POST /ir/send?name=On&times=3
 //   POST /ir/delete?name=On
+//   POST /ir/probe               counts the receiver's flickers for 5 s while any remote is pressed: a check
 // Like the Kasa plugs, it's open to the home Wi-Fi only.
 namespace web {
 

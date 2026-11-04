@@ -12,6 +12,9 @@ bool begin();
 /** Waits up to timeout_ms for a remote's button and records it; false when nothing (or only noise) came. */
 bool learn(std::vector<uint16_t>& signal, int timeout_ms);
 
+/** How many times the receiver's output changed in `ms` (any remote pressed at it shows hundreds): a check. */
+int probe(int ms);
+
 /** Sends a signal `times` times (a held button: dimming steps), about 40 ms apart. */
 bool send(const std::vector<uint16_t>& signal, int times = 1);
 
