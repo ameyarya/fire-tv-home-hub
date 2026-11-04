@@ -16,7 +16,7 @@ debloat tooling come from **[cleanyourtv](https://github.com/Gathin23/cleanyourt
 | | - the **screensaver clock**: large clock, date and the weather now and for the next hours (Open-Meteo), dims at night |
 | | - recovers from the **power-cut trap** (clock reset → Private DNS fails → no internet) by itself |
 | [`photos/`](photos) | **Photos** tile: a self-hosted gallery (e.g. [telegram-photo-vault](https://github.com/ameyarya/telegram-photo-vault)) full screen, found on the Wi-Fi, with a remote-driven pointer and ←/→ for previous/next photo. |
-| [`stick/`](stick) | **Voice remote** for an M5Stack StickS3: hold A and say "turn on plug one", "good night", "volume up". Recognised on the stick (ESP-SR, offline); plugs switched directly, TV keys through Smart Home. |
+| [`stick/`](stick) | **Voice remote** for an M5Stack StickS3: hold A and say "turn on plug one", "good night", "volume up". Recognised on the stick (ESP-SR, offline); plugs switched directly, TV keys through Smart Home. Also an **IR remote** for things with only their own (a lamp, a diffuser): teach it the buttons at `http://stick.local`, and keep it plugged in where it can see them. |
 | [`lists/`](lists) | Fire OS 8 debloat lists (disable, never uninstall): ads and telemetry, and optional apps. |
 | `tools/`, `*.sh` | Mac command line: debloat and restore, install, set up Smart Home (`home.sh`), add/remove home-screen apps (`apps.sh`), tests. |
 

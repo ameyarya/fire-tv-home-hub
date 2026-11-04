@@ -1,3 +1,3 @@
-idf_component_register(SRCS "main.cpp" "kasa.cpp" "commands.cpp"
+idf_component_register(SRCS "main.cpp" "kasa.cpp" "commands.cpp" "ir.cpp" "web.cpp"
                        INCLUDE_DIRS "."
-                       PRIV_REQUIRES mbedtls esp_wifi esp_netif esp_http_client nvs_flash esp_timer)
+                       PRIV_REQUIRES mbedtls esp_wifi esp_netif esp_http_client nvs_flash esp_timer esp_driver_rmt esp_http_server)

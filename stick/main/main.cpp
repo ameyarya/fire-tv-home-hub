@@ -5,6 +5,9 @@
 // Plugs are switched directly (Kasa, found on the Wi-Fi by name), so they work with the TV off. TV keys go
 // to the Smart Home app's phone-remote API on the TV, so those need the TV awake.
 //
+// It's also an IR remote for things that only have their own (a lamp, a diffuser): its page at http://stick.local
+// teaches it the buttons, and Smart Home presses them through the same API (web.h).
+//
 // main/secrets.h (written by setup.sh, never committed) holds the Wi-Fi name and password and the TV's
 // address and phone-remote secret.
 
@@ -31,8 +34,10 @@
 #include "model_path.h"
 
 #include "commands.h"
+#include "ir.h"
 #include "kasa.h"
 #include "secrets.h"
+#include "web.h"
 
 static const char* TAG = "stick";
 static const int RATE = 16000;
@@ -53,6 +58,8 @@ static model_iface_data_t* mn;
 static int16_t* audio;  // MAX_SECONDS of mono 16 kHz, in PSRAM
 static std::vector<kasa::Plug> plugs;
 static EventGroupHandle_t wifi_events;
+static esp_netif_t* sta;
+static volatile uint32_t last;   // when the screen was last used; it goes dark 20 s after
 
 static uint32_t millis() { return (uint32_t) (esp_timer_get_time() / 1000); }
 
@@ -70,6 +77,13 @@ static void show(const char* big, const char* small = "", uint16_t color = TFT_W
         d.setTextColor(TFT_LIGHTGREY);
         d.drawString(small, d.width() / 2, d.height() / 2 + 22);
     }
+}
+
+/** The stick's page is using it (learning a button): wakes the screen to say so. */
+static void page_status(const char* big, const char* small, uint16_t color) {
+    M5.Display.setBrightness(90);
+    show(big, small, color);
+    last = millis();
 }
 
 static void idle() { show("Hold A", "and say a command"); }
@@ -90,7 +104,11 @@ static void beep(int hz, int ms) {
 // ---- Wi-Fi ---------------------------------------------------------------------------------------
 
 static void on_wifi(void*, esp_event_base_t base, int32_t id, void*) {
-    if (base == WIFI_EVENT && (id == WIFI_EVENT_STA_START || id == WIFI_EVENT_STA_DISCONNECTED)) {
+    if (base == WIFI_EVENT && id == WIFI_EVENT_STA_CONNECTED) {
+        // An IPv6 address too, which stick.local then also gives: phones ask for both, and wait seconds for one
+        // that never comes.
+        esp_netif_create_ip6_linklocal(sta);
+    } else if (base == WIFI_EVENT && (id == WIFI_EVENT_STA_START || id == WIFI_EVENT_STA_DISCONNECTED)) {
         xEventGroupClearBits(wifi_events, 1);
         esp_wifi_connect();
     } else if (base == IP_EVENT && id == IP_EVENT_STA_GOT_IP) {
@@ -106,7 +124,7 @@ static void wifi_start() {
     wifi_events = xEventGroupCreate();
     esp_netif_init();
     esp_event_loop_create_default();
-    esp_netif_create_default_wifi_sta();
+    sta = esp_netif_create_default_wifi_sta();
     wifi_init_config_t init = WIFI_INIT_CONFIG_DEFAULT();
     esp_wifi_init(&init);
     esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, on_wifi, nullptr);
@@ -315,6 +333,8 @@ extern "C" void app_main() {
     M5.Display.setBrightness(90);
     show("Starting…");
     nvs_flash_init();
+    M5.Power.setExtOutput(true);   // the IR LED and receiver run off the 5 V output (needs USB power, or the battery)
+    ir::begin();
     audio = (int16_t*) heap_caps_malloc(sizeof(int16_t) * RATE * MAX_SECONDS, MALLOC_CAP_SPIRAM);
     setup_speech();
     to_recogniser = xQueueCreate(128, sizeof(int));
@@ -324,10 +344,11 @@ extern "C" void app_main() {
     wifi_start();
     show(wifi_up(15000) ? "Finding plugs…" : "No Wi-Fi yet");
     if (wifi_up(0)) plugs = kasa::discover();
+    web::start(page_status);
     char found[48];
     snprintf(found, sizeof found, "%d plug%s found", (int) plugs.size(), plugs.size() == 1 ? "" : "s");
     show("Hold A", found);
-    uint32_t last = millis();
+    last = millis();
     while (true) {
         M5.update();
         if (M5.BtnA.wasPressed()) {
