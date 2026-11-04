@@ -102,6 +102,38 @@ static std::vector<uint16_t> pulses(const rmt_symbol_word_t* s, size_t n) {
     return out;
 }
 
+static bool near(int v, int target) { return v > target * 6 / 10 && v < target * 14 / 10; }
+
+std::vector<uint16_t> clean(const std::vector<uint16_t>& signal, std::string* code) {
+    if (code) code->clear();
+    // 32 bits: each a ~560 µs pulse, then a ~560 µs gap (0) or ~1690 µs gap (1), least significant bit first.
+    for (size_t at = 0; at + 64 < signal.size() + 1 && at + 64 <= signal.size(); at += 2) {
+        uint32_t bits = 0;
+        bool ok = true;
+        for (int b = 0; b < 32 && ok; b++) {
+            int on = signal[at + 2 * b], off = signal[at + 2 * b + 1];
+            if (!near(on, 560)) ok = false;
+            else if (near(off, 1690)) bits |= 1u << b;
+            else if (!near(off, 560)) ok = false;
+        }
+        uint8_t cmd = (bits >> 16) & 0xff, inv = bits >> 24;
+        if (!ok || (uint8_t) ~cmd != inv) continue;
+        std::vector<uint16_t> out = {9000, 4500};
+        for (int b = 0; b < 32; b++) {
+            out.push_back(560);
+            out.push_back(bits >> b & 1 ? 1690 : 560);
+        }
+        out.push_back(560);
+        if (code) {
+            char c[16];
+            snprintf(c, sizeof c, "%02X/%02X", (unsigned) (bits & 0xff), (unsigned) cmd);
+            *code = c;
+        }
+        return out;
+    }
+    return signal;
+}
+
 bool learn(std::vector<uint16_t>& signal, int timeout_ms) {
     if (!rx_ch || xSemaphoreTake(busy, pdMS_TO_TICKS(timeout_ms)) != pdTRUE) return false;
     rmt_receive_config_t rc{};
@@ -118,7 +150,7 @@ bool learn(std::vector<uint16_t>& signal, int timeout_ms) {
             rmt_enable(rx_ch);
             break;
         }
-        signal = pulses(e.received_symbols, e.num_symbols);
+        signal = clean(pulses(e.received_symbols, e.num_symbols));
         ESP_LOGI(TAG, "received %d symbols, %d pulses", (int) e.num_symbols, (int) signal.size());
         got = (int) signal.size() >= MIN_PULSES;
     }
@@ -141,8 +173,8 @@ int probe(int ms) {
     return changes;
 }
 
-bool send(const std::vector<uint16_t>& signal, int times) {
-    if (!tx_ch || signal.empty() || xSemaphoreTake(busy, pdMS_TO_TICKS(3000)) != pdTRUE) return false;
+/** The signal as RMT symbols: on with the carrier, then off. */
+static std::vector<rmt_symbol_word_t> symbols(const std::vector<uint16_t>& signal) {
     std::vector<rmt_symbol_word_t> s;
     for (size_t i = 0; i < signal.size(); i += 2) {
         rmt_symbol_word_t w{};
@@ -152,13 +184,46 @@ bool send(const std::vector<uint16_t>& signal, int times) {
         w.duration1 = i + 1 < signal.size() ? std::min<int>(signal[i + 1], 32767) : 1000;
         s.push_back(w);
     }
+    return s;
+}
+
+bool loopback(const std::vector<uint16_t>& signal, std::vector<uint16_t>& heard) {
+    heard.clear();
+    if (!rx_ch || !tx_ch || signal.empty() || xSemaphoreTake(busy, pdMS_TO_TICKS(3000)) != pdTRUE) return false;
+    rmt_receive_config_t rc{};
+    rc.signal_range_min_ns = 1000;
+    rc.signal_range_max_ns = 15000000;
+    xQueueReset(received);
+    auto s = symbols(signal);
     rmt_transmit_config_t tc{};
-    bool ok = true;
-    for (int t = 0; t < std::max(1, std::min(times, 20)) && ok; t++) {
-        ok = rmt_transmit(tx_ch, copy, s.data(), s.size() * sizeof s[0], &tc) == ESP_OK
-             && rmt_tx_wait_all_done(tx_ch, 1000) == ESP_OK;
+    bool sent = rmt_receive(rx_ch, frame, sizeof frame, &rc) == ESP_OK
+                && rmt_transmit(tx_ch, copy, s.data(), s.size() * sizeof s[0], &tc) == ESP_OK
+                && rmt_tx_wait_all_done(tx_ch, 1000) == ESP_OK;
+    rmt_rx_done_event_data_t e;
+    if (xQueueReceive(received, &e, pdMS_TO_TICKS(300)) == pdTRUE) {
+        heard = pulses(e.received_symbols, e.num_symbols);
+    } else {
+        rmt_disable(rx_ch);
+        rmt_enable(rx_ch);
+    }
+    xSemaphoreGive(busy);
+    return sent;
+}
+
+bool send(const std::vector<uint16_t>& signal, int times) {
+    if (!tx_ch || signal.empty() || xSemaphoreTake(busy, pdMS_TO_TICKS(3000)) != pdTRUE) return false;
+    auto s = symbols(clean(signal));   // buttons learned before clean() existed get it here
+    rmt_transmit_config_t tc{};
+    esp_err_t err = ESP_OK;
+    for (int t = 0; t < std::max(1, std::min(times, 20)) && err == ESP_OK; t++) {
+        err = rmt_transmit(tx_ch, copy, s.data(), s.size() * sizeof s[0], &tc);
+        if (err == ESP_OK) err = rmt_tx_wait_all_done(tx_ch, 1000);
         if (t + 1 < times) vTaskDelay(pdMS_TO_TICKS(40));
     }
+    bool ok = err == ESP_OK;
+    ESP_LOGI(TAG, "sent %d pulses x%d (%d %d %d %d …): %s", (int) signal.size(), times, signal[0],
+             signal.size() > 1 ? signal[1] : 0, signal.size() > 2 ? signal[2] : 0, signal.size() > 3 ? signal[3] : 0,
+             esp_err_to_name(err));
     xSemaphoreGive(busy);
     return ok;
 }

@@ -329,12 +329,16 @@ static void setup_speech() {
 extern "C" void app_main() {
     auto cfg = M5.config();
     M5.begin(cfg);
+    M5.Speaker.end();   // its amplifier garbles what the IR receiver hears (it's only on for a beep)
     M5.Display.setRotation(1);
     M5.Display.setBrightness(90);
     show("Starting…");
     nvs_flash_init();
-    M5.Power.setExtOutput(true);   // the IR LED and receiver run off the 5 V output (needs USB power, or the battery)
     ir::begin();
+    // The IR LED and receiver run off the 5 V output (USB power, or the battery); on after the IR set-up, as in
+    // M5Stack's own StickS3 example.
+    M5.Power.setExtOutput(true, m5::ext_none);
+    vTaskDelay(pdMS_TO_TICKS(100));
     audio = (int16_t*) heap_caps_malloc(sizeof(int16_t) * RATE * MAX_SECONDS, MALLOC_CAP_SPIRAM);
     setup_speech();
     to_recogniser = xQueueCreate(128, sizeof(int));

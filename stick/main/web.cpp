@@ -177,6 +177,24 @@ static esp_err_t probe(httpd_req_t* r) {
     return reply(r, "200 OK", j);
 }
 
+static std::string list_of(const std::vector<uint16_t>& v) {
+    std::string j = "[";
+    for (size_t i = 0; i < v.size(); i++) j += (i ? "," : "") + std::to_string(v[i]);
+    return j + "]";
+}
+
+/** A learned button's signal, and what the stick's own receiver hears when it sends it: a check of the LED. */
+static esp_err_t check(httpd_req_t* r) {
+    std::vector<uint16_t> signal, heard;
+    if (!ir::load(param(r, "name"), signal)) return reply(r, "404 Not Found", "{\"error\":\"no such button\"}");
+    bool sent = ir::loopback(ir::clean(signal), heard);
+    std::string code;
+    ir::clean(signal, &code);
+    std::string j = "{\"sent\":" + std::string(sent ? "true" : "false") + ",\"nec\":\"" + code + "\",\"learned\":" + list_of(signal)
+                    + ",\"heard\":" + list_of(heard) + "}";
+    return reply(r, "200 OK", j.c_str());
+}
+
 static esp_err_t send(httpd_req_t* r) {
     std::string name = param(r, "name"), times = param(r, "times");
     std::vector<uint16_t> signal;
@@ -203,6 +221,7 @@ void start(Status s) {
         {"/ir/send", HTTP_POST, send, nullptr},
         {"/ir/delete", HTTP_POST, forget, nullptr},
         {"/ir/probe", HTTP_POST, probe, nullptr},
+        {"/ir/check", HTTP_POST, check, nullptr},
     };
     for (const auto& u : routes) httpd_register_uri_handler(server, &u);
     if (mdns_init() == ESP_OK) {   // http://stick.local
