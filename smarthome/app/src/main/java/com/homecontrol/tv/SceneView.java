@@ -117,6 +117,15 @@ public final class SceneView extends View {
     /** How much of the colour is left (the faint tint), and how bright the whole picture is (0 to 1). */
     private static final float TINT = 0.18f;
     private float level = 0.5f;
+    private boolean clock = true, fixed;
+
+    /** Just the muted scenery behind a screen: no clock or date, and the same scene all the time. */
+    void backdrop(int look, float brightness) {
+        clock = false;
+        fixed = true;
+        index = look % LOOKS.length;
+        level = brightness;
+    }
 
     /** The picture's brightness, from the room's light. */
     void setLevel(float l) {
@@ -163,7 +172,7 @@ public final class SceneView extends View {
         refreshText();
         if (current == null) current = load(LOOKS[index]);
         tick.run();
-        main.postDelayed(rotate, EVERY_MS);
+        if (!fixed) main.postDelayed(rotate, EVERY_MS);
     }
 
     /** Stops the timers and drops the scene waiting to come in; call from onPause. */
@@ -186,7 +195,7 @@ public final class SceneView extends View {
         o.inPreferredConfig = Bitmap.Config.RGB_565;
         s.photo = BitmapFactory.decodeResource(getResources(), look.photo, o);
         o.inSampleSize = 2;   // the glass copy is a blur
-        s.glass = BitmapFactory.decodeResource(getResources(), look.glass, o);
+        if (clock) s.glass = BitmapFactory.decodeResource(getResources(), look.glass, o);
         o.inSampleSize = 1;
         o.inPreferredConfig = Bitmap.Config.ARGB_8888;
         s.cutout = BitmapFactory.decodeResource(getResources(), look.cutout, o);
@@ -250,7 +259,7 @@ public final class SceneView extends View {
     }
 
     private void draw(Canvas c, Scene s, float alpha, float night, int w, int h) {
-        if (s.photo == null || s.cutout == null || s.glass == null) return;
+        if (s.photo == null || s.cutout == null || (clock && s.glass == null)) return;
         Look l = s.look;
         float k = w / 1920f;
         int layer = c.saveLayerAlpha(0, 0, w, h, Math.round(alpha * 255));
@@ -262,7 +271,18 @@ public final class SceneView extends View {
             c.drawRect(0, 0, w, h * 0.55f, shade);
         }
 
-        // the clock
+        if (clock) drawClock(c, s, l, k, w, h, night);
+
+        // the scenery over the digits
+        pic.setColorFilter(muted(l.photoBrightness * night));
+        cover(c, s.cutout, w, h, pic);
+
+        if (clock) drawDate(c, l, k, w);
+        c.restoreToCount(layer);
+    }
+
+    /** The glass clock behind the scenery (see the launcher's SceneView). */
+    private void drawClock(Canvas c, Scene s, Look l, float k, int w, int h, float night) {
         float size = l.size * k;
         fill.setTextSize(size);
         rim.setTextSize(size);
@@ -300,18 +320,15 @@ public final class SceneView extends View {
             c.drawText(time, x, baseline, sheen);
         }
 
-        // the scenery over the digits
-        pic.setColorFilter(muted(l.photoBrightness * night));
-        cover(c, s.cutout, w, h, pic);
+    }
 
-        // the date, above the clock
+    private void drawDate(Canvas c, Look l, float k, int w) {
         dateText.setTextSize(34f * k);
         dateText.setColor(l.dateColor);
         dateText.setShadowLayer(l.dateColor == 0xFF16201D ? 0f : 9f * k, 0, 2f * k, 0x40000000);
         float dateWidth = dateText.measureText(date);
         c.drawText(date, l.left >= 0 ? (l.left + 8) * k : (w - dateWidth) / 2f, (l.date + 30f) * k, dateText);
 
-        c.restoreToCount(layer);
     }
 
     /** The picture scaled to cover the view, centred. */

@@ -1,16 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- A glass tile: frosted over the scene, white when focused (the same on the phone page). -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_focused="true">
         <shape android:shape="rectangle">
             <solid android:color="#F5FFFFFF" />
-            <corners android:radius="18dp" />
+            <corners android:radius="22dp" />
         </shape>
     </item>
     <item>
         <shape android:shape="rectangle">
-            <solid android:color="#FF1C1C1E" />
-            <stroke android:width="1dp" android:color="#14FFFFFF" />
-            <corners android:radius="18dp" />
+            <gradient android:angle="270" android:startColor="#3AFFFFFF" android:endColor="#24FFFFFF" />
+            <stroke android:width="1dp" android:color="#2EFFFFFF" />
+            <corners android:radius="22dp" />
         </shape>
     </item>
 </selector>

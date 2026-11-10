@@ -110,6 +110,14 @@ final class RemoteServer {
             replyBytes(out, 200, "image/png", asset(path.substring(1)));
             return;
         }
+        if (method.equals("GET") && path.equals("/scene.jpg")) {
+            replyBytes(out, 200, "image/jpeg", asset("scene.jpg"));
+            return;
+        }
+        if (method.equals("GET") && path.equals("/outfit.ttf")) {
+            replyBytes(out, 200, "font/ttf", asset("outfit.ttf"));
+            return;
+        }
         if (method.equals("GET") && path.equals("/manifest.webmanifest")) {
             reply(out, 200, "application/manifest+json", MANIFEST);
             return;

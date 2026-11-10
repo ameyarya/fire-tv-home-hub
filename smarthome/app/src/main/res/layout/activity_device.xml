@@ -1,9 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FF000000">
+
+<com.homecontrol.tv.SceneView
+    android:id="@+id/scene"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" />
+
+<LinearLayout
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#FF000000"
     android:paddingStart="80dp"
     android:paddingEnd="80dp"
     android:paddingTop="48dp">
@@ -98,3 +107,4 @@
         android:textSize="15sp"
         android:fontFamily="@font/outfit" />
 </LinearLayout>
+</FrameLayout>

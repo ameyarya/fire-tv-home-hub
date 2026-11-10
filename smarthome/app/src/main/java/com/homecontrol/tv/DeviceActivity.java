@@ -26,6 +26,7 @@ import java.util.concurrent.Executors;
  * with its recent activity underneath.
  */
 public class DeviceActivity extends Activity {
+    private SceneView scene;
 
     static final String EXTRA_ID = "device";
     private static final long POLL_MS = 3000, ENERGY_MS = 30_000;
@@ -50,6 +51,8 @@ public class DeviceActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_device);
+        scene = findViewById(R.id.scene);
+        scene.backdrop(0, 0.36f);
         id = getIntent().getStringExtra(EXTRA_ID);
         prompts = new Prompts(this);
         editors = new Editors(this, prompts, io);
@@ -110,12 +113,14 @@ public class DeviceActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        scene.start();
         Storage.listen(onStorageChanged);
         poll();
     }
 
     @Override
     protected void onPause() {
+        scene.stop();
         super.onPause();
         Storage.unlisten(onStorageChanged);
         main.removeCallbacks(poll);

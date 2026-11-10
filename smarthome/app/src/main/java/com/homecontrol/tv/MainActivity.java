@@ -41,6 +41,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * polled every few seconds while the screen is open, straight from each device.
  */
 public class MainActivity extends Activity {
+    private SceneView scene;
 
     static final int COLUMNS = 4;
     private static final long POLL_MS = 4000;
@@ -105,6 +106,8 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         RemoteService.start(this);
         setContentView(R.layout.activity_main);
+        scene = findViewById(R.id.scene);
+        scene.backdrop(0, 0.36f);
         home = Storage.get(this);
         prompts = new Prompts(this);
         editors = new Editors(this, prompts, io);
@@ -149,6 +152,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        scene.start();
         Storage.listen(onStorageChanged);
         // Changes made while in the background (another screen, over adb, an automation) were not drawn; catch up.
         onStorageChanged.run();
@@ -156,6 +160,7 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onPause() {
+        scene.stop();
         super.onPause();
         Storage.unlisten(onStorageChanged);
         main.removeCallbacks(poll);

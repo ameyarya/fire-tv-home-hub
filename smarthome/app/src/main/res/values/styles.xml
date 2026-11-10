@@ -26,4 +26,12 @@
         <item name="android:clickable">true</item>
         <item name="android:singleLine">true</item>
     </style>
+    <!-- The same pill with only an icon (Add, Activity, Settings): round, as on the clean launcher and on the phone page. -->
+    <style name="PillIcon" parent="Pill">
+        <item name="android:layout_width">42dp</item>
+        <item name="android:layout_height">42dp</item>
+        <item name="android:paddingStart">10dp</item>
+        <item name="android:paddingEnd">0dp</item>
+        <item name="android:gravity">center_vertical</item>
+    </style>
 </resources>

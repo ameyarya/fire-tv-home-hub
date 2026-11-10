@@ -4,6 +4,12 @@
     android:layout_height="match_parent"
     android:background="#FF000000">
 
+    <!-- The muted scene behind everything, as on the phone page and the screensaver. -->
+    <com.homecontrol.tv.SceneView
+        android:id="@+id/scene"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -28,9 +34,9 @@
                 android:fontFamily="@font/outfit"
                 android:fontVariationSettings="'wght' 300" />
 
-            <TextView android:id="@+id/btnAdd" style="@style/Pill" android:text="@string/add" />
-            <TextView android:id="@+id/btnActivity" style="@style/Pill" android:text="@string/activity" />
-            <TextView android:id="@+id/btnSettings" style="@style/Pill" android:text="@string/settings" />
+            <TextView android:id="@+id/btnAdd" style="@style/PillIcon" android:contentDescription="@string/add" android:drawableStart="@drawable/ic_add" />
+            <TextView android:id="@+id/btnActivity" style="@style/PillIcon" android:contentDescription="@string/activity" android:drawableStart="@drawable/ic_list" />
+            <TextView android:id="@+id/btnSettings" style="@style/PillIcon" android:contentDescription="@string/settings" android:drawableStart="@drawable/ic_gear" />
         </LinearLayout>
 
         <TextView
