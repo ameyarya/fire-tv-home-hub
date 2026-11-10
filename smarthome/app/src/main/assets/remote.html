@@ -232,7 +232,7 @@
   </header>
   <div id="summary"></div>
   <div class="filters" id="filters">
-    <button data-f="all" class="on">All</button><button data-f="plugs">Plugs</button><button data-f="cameras">Cameras</button>
+    <button data-f="all" class="on">All</button><button data-f="remotes">Remotes</button><button data-f="plugs">Plugs</button><button data-f="cameras">Cameras</button>
     <button data-f="scenes">Scenes</button><button data-f="autos">Automations</button>
   </div>
   <div id="sections"></div>
@@ -378,7 +378,7 @@ function render() {
     a.describe + (a.enabled && a.next ? ' · next ' + a.next : ''), `data-auto="${esc(a.id)}"`, 'automation', a.id));
   // in the shared order (Settings → Section order on the TV, or ▲▼ here in edit mode)
   const remotes = [tile('', 'i-tv', '', 'TV', 'Tap for the remote', 'data-remote="tv"', 'remote', 'tv')];
-  const parts = { remotes: () => section('Remotes', remotes, filter === 'all', 'remotes'),
+  const parts = { remotes: () => section('Remotes', remotes, show('remotes'), 'remotes'),
     scenes: () => section('Scenes', scenes, show('scenes'), 'scenes'),
     cameras: () => section('Cameras', cams, show('cameras'), 'cameras'),
     plugs: () => section('Plugs & lights', plugs, show('plugs'), 'plugs'),
