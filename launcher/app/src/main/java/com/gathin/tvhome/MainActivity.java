@@ -7,6 +7,7 @@ import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.IntentFilter;
 import android.content.pm.ApplicationInfo;
 import android.graphics.Bitmap;
@@ -298,6 +299,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
 
         btnInputs = findViewById(R.id.btnInputs);
+        View btnSleep = findViewById(R.id.btnSleep);
+        btnSleep.setOnClickListener(v -> showScreensaverMenu(btnSleep));
         View btnSettings = findViewById(R.id.btnSettings);
         btnInputs.setOnClickListener(v -> showInputs());
         btnWifi.setOnClickListener(v -> openNetworkPill());
@@ -332,11 +335,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
             if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
                 // The left end is Inputs, or Wi-Fi on a box without inputs.
-                return v.getId() == R.id.btnInputs
-                        || (v.getId() == R.id.btnWifi && btnInputs.getVisibility() != View.VISIBLE);
+                return v.getId() == R.id.btnSleep;   // the left end
             }
             return keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && v.getId() == R.id.btnSettings;
         };
+        btnSleep.setOnKeyListener(pillKeys);
         btnInputs.setOnKeyListener(pillKeys);
         btnWifi.setOnKeyListener(pillKeys);
         btnSmartHome.setOnKeyListener(pillKeys);
@@ -986,6 +989,41 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
         dropIn(popup, panel, anchor, Gravity.START);
         rows.getChildAt(0).requestFocus();
+    }
+
+    /** Dropdown under the moon pill: show the screensaver now, or pick how many idle minutes bring it up. */
+    private void showScreensaverMenu(View anchor) {
+        SharedPreferences prefs = getSharedPreferences(ScreensaverReceiver.PREFS, MODE_PRIVATE);
+        int current = prefs.getInt(ScreensaverReceiver.KEY, 0);
+        View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+        final PopupWindow popup = glassPopup(panel, (int) (200 * density));
+        addInputRow(rows, popup, R.drawable.ic_sleep, getString(R.string.saver_now), -1, () -> {
+            try {
+                startActivity(new Intent().setComponent(new ComponentName(SMART_HOME, SMART_HOME + ".ClockActivity"))
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            } catch (RuntimeException e) {   // Smart Home not installed
+                Toast.makeText(this, R.string.saver_needs_smart_home, Toast.LENGTH_LONG).show();
+            }
+        });
+        int[] choices = {0, 2, 5, 10, 15, 30};
+        int focus = 0;
+        for (int i = 0; i < choices.length; i++) {
+            final int min = choices[i];
+            addInputRow(rows, popup, R.drawable.ic_sleep, min == 0 ? getString(R.string.saver_off) : getString(R.string.saver_minutes, min), -1, () -> {
+                prefs.edit().putInt(ScreensaverReceiver.KEY, min).apply();
+                Toast.makeText(this, min == 0 ? getString(R.string.saver_off_set) : getString(R.string.saver_set, min),
+                        Toast.LENGTH_SHORT).show();
+            });
+            if (min == current) {
+                focus = i + 1;
+                TextView status = rows.getChildAt(i + 1).findViewById(R.id.status);
+                status.setText(R.string.saver_current);
+                status.setVisibility(View.VISIBLE);
+            }
+        }
+        dropIn(popup, panel, anchor, Gravity.START);
+        rows.getChildAt(focus).requestFocus();
     }
 
     private PopupWindow glassPopup(View panel, int width) {

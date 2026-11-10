@@ -170,6 +170,14 @@
                 android:layout_marginBottom="6dp"
                 android:orientation="horizontal">
 
+                <!-- Screensaver: show it now, or after how many idle minutes. -->
+                <TextView
+                    android:id="@+id/btnSleep"
+                    style="@style/TopIcon"
+                    android:contentDescription="@string/screensaver"
+                    android:drawableStart="@drawable/ic_sleep"
+                    android:nextFocusDown="@+id/grid" />
+
                 <TextView
                     android:id="@+id/btnInputs"
                     style="@style/TopIcon"
@@ -188,8 +196,8 @@
                 <!-- The Smart Home app lives here instead of as a tile (hidden when it isn't installed). -->
                 <TextView
                     android:id="@+id/btnSmartHome"
-                    style="@style/TopButton"
-                    android:text="@string/smart_home"
+                    style="@style/TopIcon"
+                    android:contentDescription="@string/smart_home"
                     android:drawableStart="@drawable/ic_smarthome"
                     android:nextFocusDown="@+id/grid" />
 

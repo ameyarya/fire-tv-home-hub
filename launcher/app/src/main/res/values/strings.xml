@@ -2,6 +2,14 @@
 <resources>
     <string name="app_name">Home</string>
     <string name="inputs">Inputs</string>
+    <string name="screensaver">Screensaver</string>
+    <string name="saver_now">Show it now</string>
+    <string name="saver_off">Off</string>
+    <string name="saver_minutes">%d minutes</string>
+    <string name="saver_current">Current</string>
+    <string name="saver_set">Screensaver after %d minutes</string>
+    <string name="saver_off_set">Screensaver off</string>
+    <string name="saver_needs_smart_home">The screensaver is part of the Smart Home app, which isn\'t installed</string>
     <string name="wifi">Wi-Fi</string>
     <string name="settings">Settings</string>
     <string name="choose_input">Inputs</string>
