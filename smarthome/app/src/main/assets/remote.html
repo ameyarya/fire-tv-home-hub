@@ -105,7 +105,7 @@
   #remoteSheet .panel-head { gap: 8px; } #remoteSheet .panel-head b { flex: 1; }
   .round { position: relative; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; flex: none; padding: 0; color: #fff; }
   .round.big { width: 56px; height: 56px; }
-  .round svg, .volume svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
+  .round svg, .volume svg { width: 24px; height: 24px; fill: currentColor; stroke: none; pointer-events: none; }
   #pad { aspect-ratio: 1.1; border-radius: 34px; background: rgb(255 255 255 / .13); border: 1px solid rgb(255 255 255 / .17);
     box-shadow: inset 0 1px 0 rgb(255 255 255 / .1); display: grid; place-items: center; }
   #pad .chev { position: absolute; width: 24px; height: 24px; opacity: .38; fill: none; stroke: #fff; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round;
@@ -117,7 +117,7 @@
   #pad .chev.left.lit { transform: rotate(-90deg) translateY(-3px); } #pad .chev.right.lit { transform: rotate(90deg) translateY(-3px); }
   #pad .ring { width: 92px; height: 92px; border-radius: 50%; border: 1.5px solid rgb(255 255 255 / .24); transition: background .35s, transform .35s cubic-bezier(.22, 1, .36, 1); pointer-events: none; }
   #pad .ring.lit { background: rgb(255 255 255 / .16); transform: scale(.94); transition: none; }
-  #pad .hint { place-items: end center; padding-bottom: 18px; color: rgb(255 255 255 / .5); }
+  #pad .hint { inset: auto; top: calc(50% + 62px); left: 0; right: 0; display: block; text-align: center; color: rgb(255 255 255 / .5); }
   #pad .spot { position: absolute; left: 0; top: 0; width: 120px; height: 120px; margin: -60px 0 0 -60px; border-radius: 50%; pointer-events: none; opacity: 0;
     background: radial-gradient(closest-side, rgb(255 255 255 / .22), rgb(255 255 255 / 0)); transition: opacity .25s; }
   .controls { display: flex; justify-content: space-between; margin-top: 14px; }
