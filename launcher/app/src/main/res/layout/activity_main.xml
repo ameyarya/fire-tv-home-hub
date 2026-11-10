@@ -5,6 +5,14 @@
     android:layout_height="match_parent"
     android:background="#FF000000">
 
+    <!-- The scene wallpaper and its glass clock (hidden when config turns scenes off). -->
+    <com.gathin.tvhome.SceneView
+        android:id="@+id/scenes"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone"
+        android:importantForAccessibility="no" />
+
     <!-- Ambient glow in the colour of the focused dock app. -->
     <View
         android:id="@+id/ambient"
@@ -206,7 +214,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:paddingTop="10dp"
-                android:paddingBottom="40dp"
+                android:paddingBottom="14dp"
                 android:clipToPadding="false"
                 android:clipChildren="false"
                 android:overScrollMode="never"

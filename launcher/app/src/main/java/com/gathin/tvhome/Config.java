@@ -43,6 +43,8 @@ final class Config {
     final int rowsBelowDock;
     final boolean shamsiDate;
     final boolean moduleCards;
+    /** The scene wallpaper with the big glass clock (SceneView); off when a wallpaper picture is set. */
+    final boolean scenes;
     /** Calmer motion for weak GPUs (config.xml, reduced_motion): stiff spring, short fades, no replay. */
     final boolean reducedMotion;
     final String vpnApp;
@@ -57,7 +59,7 @@ final class Config {
     private Config(List<String> dockApps, List<String> hiddenApps, String liveTvPackage, String liveTvAction,
                    String sourcePanelService, String sourcePanelAction, String inputAction,
                    int columns, int rowsBelowDock,
-                   boolean shamsiDate, boolean moduleCards, boolean reducedMotion, String vpnApp,
+                   boolean shamsiDate, boolean moduleCards, boolean scenes, boolean reducedMotion, String vpnApp,
                    boolean showHomeSettingsShortcut, int backgroundColor,
                    File wallpaper, boolean overlayApplied) {
         this.dockApps = Collections.unmodifiableList(dockApps);
@@ -71,6 +73,7 @@ final class Config {
         this.rowsBelowDock = rowsBelowDock;
         this.shamsiDate = shamsiDate;
         this.moduleCards = moduleCards;
+        this.scenes = scenes;
         this.reducedMotion = reducedMotion;
         this.vpnApp = vpnApp;
         this.showHomeSettingsShortcut = showHomeSettingsShortcut;
@@ -97,6 +100,7 @@ final class Config {
         int rowsBelow = res.getInteger(R.integer.rows_below_dock);
         boolean shamsi = res.getBoolean(R.bool.shamsi_date);
         boolean moduleCards = res.getBoolean(R.bool.module_cards);
+        boolean scenes = res.getBoolean(R.bool.scenes);
         boolean reducedMotion = res.getBoolean(R.bool.reduced_motion);
         String vpn = res.getString(R.string.vpn_app).trim();
         boolean homeSettings = res.getBoolean(R.bool.show_home_settings_shortcut);
@@ -119,6 +123,7 @@ final class Config {
             rowsBelow = integer(json, "rows_below_dock", rowsBelow, 0, 3);
             shamsi = bool(json, "shamsi_date", shamsi);
             moduleCards = bool(json, "module_cards", moduleCards);
+            scenes = bool(json, "scenes", scenes);
             reducedMotion = bool(json, "reduced_motion", reducedMotion);
             vpn = string(json, "vpn_app", vpn);
             homeSettings = bool(json, "show_home_settings_shortcut", homeSettings);
@@ -130,7 +135,7 @@ final class Config {
         if (json != null && json.has("wallpaper") && !bool(json, "wallpaper", true)) wallpaper = null;
 
         return new Config(dock, hidden, liveTv, liveTvAction, panelService, panelAction, inputAction,
-                Math.max(1, columns), Math.max(0, rowsBelow), shamsi, moduleCards, reducedMotion,
+                Math.max(1, columns), Math.max(0, rowsBelow), shamsi, moduleCards, scenes, reducedMotion,
                 vpn, homeSettings, background, wallpaper, applied);
     }
 

@@ -72,11 +72,15 @@
 
     <!-- Tiles per row in the grid; the dock always has this many slots. Tiles are 180dp wide at 4 columns and
          shrink to fit from 5 up (about 144dp at 5, 117dp at 6 on a 1080p TV). -->
-    <integer name="columns">4</integer>
+    <integer name="columns">8</integer>
 
     <!-- "Default home" tile that opens Android's home-screen picker, for TVs whose settings have one
          (most Android TVs don't; the tile only appears when the page exists). Off by default. -->
     <bool name="show_home_settings_shortcut">false</bool>
+
+    <!-- Scene wallpaper: four photos take turns every 20 s, with a big glass clock behind the scenery (SceneView).
+         false: the plain black home. Ignored while a wallpaper picture is set. config.json: "scenes". -->
+    <bool name="scenes">true</bool>
 
     <!-- Module cards: an app that declares a card (docs/specs/card.md) can stand in for its tile with its own
          label, caption and glow colour, once you answer Show on the prompt. false: never look for cards or ask. -->

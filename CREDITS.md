@@ -48,3 +48,5 @@ SOFTWARE.
 - **Open-Meteo** for the screensaver's weather (free, no key).
 - **M5Unified / M5GFX** (M5Stack) and **ESP-SR** (Espressif) for the voice stick, fetched at build time.
 - **ZXing core** (QR codes), Apache 2.0, fetched by Gradle.
+- **couch-tv** by Seagey (MIT, github.com/Seagey/couch-tv): the home screen's four scene pictures with their cut-outs and glass copies (made with an AI image model, free to use) and the layout of the glass clock behind the scenery (`SceneView`).
+- **Antonio** (Light) font, SIL Open Font License 1.1: the scene clock's digits.
