@@ -1,5 +1,9 @@
 package com.homecontrol.tv;
 
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.os.Handler;
 import android.os.Looper;
 import android.app.Activity;
@@ -23,9 +27,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
 /**
- * The screensaver: a large clock and the date, the weather now and for the next few hours. It sits still in
- * the centre (this TV's panel is LCD, which doesn't burn in), and at night (22:00 to 06:00) it dims.
- * Any key closes it, back to what was on screen.
+ * The screensaver: the launcher's scenes with the glass clock and the date, muted to a faint tint like a phone's
+ * lock screen, and the weather below. Its brightness follows the room: the TV's light sensor (without one,
+ * the time of day: dim from 22:00 to 06:00). Any key closes it, back to what was on screen.
  *
  * Fire OS 8 ignores the chosen screensaver (its Ambient service always shows Amazon's), so the clean launcher
  * opens this instead: its FireHomeWatcher counts the minutes since the last remote key and, when nothing is
@@ -41,6 +45,10 @@ public class ClockActivity extends Activity {
             R.drawable.wx_fog, R.drawable.wx_rain, R.drawable.wx_snow, R.drawable.wx_storm};
 
     private final Handler main = new Handler(Looper.getMainLooper());
+    private SceneView scene;
+    private SensorManager sensors;
+    private Sensor light;
+    private float level = -1, lux = -1;
     private View content, weatherBox;
     private TextView time, date, wxTemp, wxText, hint;
     private ImageView wxIcon;
@@ -70,6 +78,9 @@ public class ClockActivity extends Activity {
         super.onCreate(state);
         setContentView(R.layout.dream_home);
         // No FLAG_KEEP_SCREEN_ON: the TV still goes to sleep after its usual time.
+        scene = findViewById(R.id.scene);
+        sensors = (SensorManager) getSystemService(SENSOR_SERVICE);
+        light = sensors.getDefaultSensor(Sensor.TYPE_LIGHT);
         content = findViewById(R.id.content);
         weatherBox = findViewById(R.id.weather);
         time = findViewById(R.id.time);
@@ -86,6 +97,10 @@ public class ClockActivity extends Activity {
         super.onResume();
         WindowInsetsController c = getWindow().getInsetsController();
         if (c != null) c.hide(WindowInsets.Type.systemBars());
+        scene.start();
+        if (light != null) sensors.registerListener(lightListener, light, SensorManager.SENSOR_DELAY_NORMAL);
+        level = -1;   // the first light reading sets the brightness outright
+        if (light == null) setLevel(timeLevel(LocalTime.now()));
         main.post(tick);
         main.post(weather);
     }
@@ -93,6 +108,8 @@ public class ClockActivity extends Activity {
     @Override
     protected void onPause() {
         main.removeCallbacksAndMessages(null);
+        sensors.unregisterListener(lightListener);
+        scene.stop();
         super.onPause();
         finish();   // gone once anything else comes up; the launcher opens it again next time
     }
@@ -109,8 +126,32 @@ public class ClockActivity extends Activity {
         boolean h24 = DateFormat.is24HourFormat(this);
         time.setText(now.format(DateTimeFormatter.ofPattern(h24 ? "HH:mm" : "h:mm", Locale.getDefault())));
         date.setText(now.format(DateTimeFormatter.ofPattern("EEEE d MMMM", Locale.getDefault())));
-        float alpha = night(now.toLocalTime()) ? 0.45f : 0.85f;
-        if (content.getAlpha() != alpha) content.setAlpha(alpha);
+        scene.invalidate();
+        if (light == null) setLevel(timeLevel(now.toLocalTime()));
+    }
+
+    /** Dark room 0.22 up to 0.8 in daylight, on a log scale; each reading moves it a tenth of the way (no flicker). */
+    private final SensorEventListener lightListener = new SensorEventListener() {
+        @Override
+        public void onSensorChanged(SensorEvent e) {
+            lux = e.values[0];
+            float target = 0.22f + 0.58f * (float) Math.min(1.0, Math.log10(1 + Math.max(0, lux)) / Math.log10(401));
+            setLevel(level < 0 ? target : level + 0.1f * (target - level));
+        }
+
+        @Override
+        public void onAccuracyChanged(Sensor s, int accuracy) {
+        }
+    };
+
+    private void setLevel(float l) {
+        level = l;
+        scene.setLevel(l);
+        content.setAlpha(Math.max(0.35f, l + 0.15f));   // the weather dims with the picture
+    }
+
+    private static float timeLevel(LocalTime t) {
+        return night(t) ? 0.25f : 0.6f;
     }
 
     static boolean night(LocalTime t) {
@@ -183,6 +224,6 @@ public class ClockActivity extends Activity {
         w.println("  time=" + (time != null ? time.getText() : "") + " date=" + (date != null ? date.getText() : ""));
         w.println("  weather=" + weatherState + (forecast != null ? " temp=" + Weather.temp(forecast.temp)
                 + " text=" + Weather.describe(forecast.code) + " hours=" + forecast.hours.size() : ""));
-        w.println("  alpha=" + (content != null ? content.getAlpha() : ""));
+        w.println("  alpha=" + (content != null ? content.getAlpha() : "") + " level=" + level + " lux=" + lux);
     }
 }

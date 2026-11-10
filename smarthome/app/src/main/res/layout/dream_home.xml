@@ -5,17 +5,24 @@
     android:layout_height="match_parent"
     android:background="#FF000000">
 
-    <!-- Centred and still: the TV's panel is LCD, which doesn't burn in. -->
+    <!-- The scene draws the clock and the date; the weather sits low, over its shade. -->
+    <com.homecontrol.tv.SceneView
+        android:id="@+id/scene"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
     <LinearLayout
         android:id="@+id/content"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="48dp"
         android:gravity="center_horizontal"
         android:orientation="vertical">
 
         <TextView
             android:id="@+id/time"
+            android:visibility="gone"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:includeFontPadding="false"
@@ -26,6 +33,7 @@
 
         <TextView
             android:id="@+id/date"
+            android:visibility="gone"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
                         android:textColor="#B3FFFFFF"
