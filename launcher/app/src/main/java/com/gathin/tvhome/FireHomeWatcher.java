@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.media.AudioManager;
@@ -571,7 +572,7 @@ public class FireHomeWatcher extends AccessibilityService {
             settingsShownAt = now;
             return;
         }
-        if (!amazonHome) return;
+        if (!amazonHome || otherHomeInstalled()) return;
         long graceUntil = Math.max(settingsOpenedAt + SETTINGS_START_MS, settingsShownAt + SETTINGS_SHOWN_MS);
         lastAmazonHome = now;
         if (now < graceUntil) {   // passing through on the way to Settings; if it's still in front after, take over
@@ -585,6 +586,20 @@ public class FireHomeWatcher extends AccessibilityService {
             return;
         }
         showHome();
+    }
+
+    /**
+     * Couch TV's on-TV app (github.com/Seagey/couch-tv) takes the Home key back the same way; two watchers would
+     * fight, so with it installed this one leaves Home to it (still doing the phone remote's typing and mirror).
+     * Uninstalling it gives Home back to this launcher.
+     */
+    private boolean otherHomeInstalled() {
+        try {
+            getPackageManager().getPackageInfo("dev.couchtv.ontv", 0);
+            return true;
+        } catch (PackageManager.NameNotFoundException e) {
+            return false;
+        }
     }
 
     /** After the guard: Amazon's home came up after this launcher last did, so it is still in front. */
