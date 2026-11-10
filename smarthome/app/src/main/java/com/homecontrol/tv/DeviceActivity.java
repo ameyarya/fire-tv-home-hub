@@ -84,8 +84,8 @@ public class DeviceActivity extends Activity {
         });
         findViewById(R.id.btnMove).setOnClickListener(v -> {   // its place among the tiles, on the TV and the phone
             Home.Device d = device();
-            if (d != null) prompts.list("Move " + d.name, Arrays.asList("Move earlier", "Move later"),
-                    i -> editors.move("device", d.id, i == 0 ? -1 : 1));
+            if (d != null) prompts.list("Move " + d.name, Arrays.asList("Move earlier", "Move later", editors.widthLabel("device", d.id)),
+                    i -> { if (i == 2) editors.toggleWide("device", d.id); else editors.move("device", d.id, i == 0 ? -1 : 1); });
         });
         findViewById(R.id.btnRename).setOnClickListener(v -> {
             Home.Device d = device();

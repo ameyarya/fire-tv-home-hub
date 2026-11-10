@@ -70,10 +70,10 @@
   /* sheets: the TV remote and Activity slide up over the page */
   .sheet { position: fixed; inset: 0; background: rgb(0 0 0 / .5); display: none; z-index: 10; }
   .sheet.open { display: block; }
-  .panel { position: absolute; left: 0; right: 0; bottom: 0; max-width: 560px; margin: 0 auto; background: rgb(30 30 36 / .8);
+  .panel { position: absolute; left: 0; right: 0; bottom: 0; max-width: 560px; margin: 0 auto; height: 75vh; height: 75dvh; max-height: 75vh; background: rgb(30 30 36 / .8);
            -webkit-backdrop-filter: blur(28px) saturate(170%); backdrop-filter: blur(28px) saturate(170%); border-top: 1px solid rgb(255 255 255 / .14);
            border-radius: 22px 22px 0 0; padding: 10px 16px max(22px, env(safe-area-inset-bottom)); max-height: 92vh; overflow: auto; }
-  #motionSheet .panel { height: 80vh; max-height: 80vh; overflow-y: auto; }
+
   #motionBanner { all: unset; display: none; position: fixed; top: calc(env(safe-area-inset-top) + 10px); left: 50%; transform: translateX(-50%);
     z-index: 20; padding: 9px 16px; border-radius: 999px; background: #1d1d20; color: #fff; font-size: 14px; white-space: nowrap;
     box-shadow: 0 4px 18px rgb(0 0 0 / .5); cursor: pointer; }
@@ -86,7 +86,7 @@
     text-align: center; border-radius: 50%; background: rgb(0 0 0 / .65); color: #fff; font-size: 16px; }
   .clips .save { right: 38px; font-size: 15px; }
   .clips img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 10px; background: #222; margin-bottom: 4px; }
-  #logSheet .panel { height: 50vh; max-height: 50vh; }   /* Activity: half the screen, the list scrolls */
+  .grab { padding: 12px 0; background-clip: content-box; height: 29px; box-sizing: border-box; cursor: grab; touch-action: none; }
   .seg.mode { display: flex; margin-bottom: 10px; } .seg.mode button { flex: 1; }
   #scr { display: none; position: relative; }
   #scrImg { display: block; width: 100%; aspect-ratio: 16 / 9; border-radius: 14px; background: #000; touch-action: none;
@@ -148,6 +148,8 @@
   .mv { position: absolute; top: 8px; width: 34px; height: 34px; border-radius: 50%; background: #3a3a3c; display: none;
         place-items: center; color: #fff; }
   .mv svg { width: 18px; height: 18px; }
+  .mv.w { right: 90px; font-size: 13px; font-weight: 600; }
+  .tile.wide { grid-column: span 2; }
   .mv.l { right: 50px; } .mv.r { right: 10px; } .mv.r svg { transform: rotate(180deg); }
   body.editing .mv { display: grid; }
   body.editing .tile .badge { visibility: hidden; }   /* the arrows take its corner */
@@ -334,7 +336,9 @@ function summary(h) {
   return parts.join(' · ');
 }
 function tile(cls, icon, badge, name, sub, data, kind, id) {
-  const mv = kind ? `<span class="mv l" data-move="${kind}" data-id="${esc(id)}" data-by="-1"><svg><use href="#i-back"/></svg></span>
+  const isWide = kind && (home.wide || []).includes(kind + ':' + id);
+  if (isWide) cls += ' wide';
+  const mv = kind ? `<span class="mv w" data-wide="${kind}" data-id="${esc(id)}" data-on="${isWide ? 0 : 1}">${isWide ? '1\u00d7' : '2\u00d7'}</span><span class="mv l" data-move="${kind}" data-id="${esc(id)}" data-by="-1"><svg><use href="#i-back"/></svg></span>
     <span class="mv r" data-move="${kind}" data-id="${esc(id)}" data-by="1"><svg><use href="#i-back"/></svg></span>` : '';
   return `<div class="tile ${cls}" role="button" ${data}><span class="top"><svg><use href="#${icon}"/></svg><span class="badge">${esc(badge)}</span></span>
     <span><div class="name">${esc(name)}</div><div class="sub">${esc(sub)}</div></span>${mv}</div>`;
@@ -396,6 +400,12 @@ $('#editBtn').onclick = () => {
 if (location.hash === '#edit') $('#editBtn').click();   // open straight into edit mode
 if (location.hash === '#add') setTimeout(addMenu, 0);   // or straight into + Add
 $('#sections').addEventListener('click', e => {
+  const wd = e.target.closest('[data-wide]');
+  if (wd) {
+    buzz();
+    post(`wide?kind=${wd.dataset.wide}&id=${encodeURIComponent(wd.dataset.id)}&on=${wd.dataset.on}`).then(() => load());
+    return;
+  }
   const mv = e.target.closest('[data-move]');
   if (mv) {
     buzz();
@@ -845,6 +855,18 @@ $('#openLog').onclick = () => {
     }).join('') || '<p class="empty">Nothing yet.</p>';
   }).catch(() => {});
 };
+// Every pop-up is three quarters of the screen: tap the dim strip above it, or drag the handle down, to close it.
+document.addEventListener('pointerdown', e => {
+  const g = e.target.closest('.grab'); if (!g) return;
+  const s = g.closest('.sheet'), p = g.closest('.panel'), y0 = e.clientY; let dy = 0;
+  const move = ev => { dy = Math.max(0, ev.clientY - y0); p.style.transition = 'none'; p.style.transform = `translateY(${dy}px)`; };
+  const up = () => {
+    document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', up); document.removeEventListener('pointercancel', up);
+    p.style.transition = 'transform .2s'; p.style.transform = '';
+    if (dy > 70) sheet('#' + s.id, false);
+  };
+  document.addEventListener('pointermove', move); document.addEventListener('pointerup', up); document.addEventListener('pointercancel', up);
+});
 document.querySelectorAll('.sheet').forEach(s => s.addEventListener('click', e => { if (e.target === s) sheet('#' + s.id, false); }));
 
 // ---- the TV remote ----

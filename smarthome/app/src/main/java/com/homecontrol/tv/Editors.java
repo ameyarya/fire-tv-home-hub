@@ -219,6 +219,16 @@ final class Editors {
         });
     }
 
+    /** The menu line for a tile's width: what choosing it does. */
+    String widthLabel(String kind, String id) {
+        return home().isWide(kind, id) ? "Width: back to 1\u00d7" : "Width: make it 2\u00d7";
+    }
+
+    void toggleWide(String kind, String id) {
+        home().setWide(kind, id, !home().isWide(kind, id));
+        save();
+    }
+
     /** Tiles show in the stored order, on the TV and on the phone page; this moves one a place. */
     void move(String kind, String id, int by) {
         if (home().move(kind, id, by)) save();
@@ -228,7 +238,7 @@ final class Editors {
     void cameraMenu(Home.Camera c) {
         List<String> items = new ArrayList<>(Arrays.asList("Room: " + roomName(c.roomId),
                 c.favorite ? "Remove from Favorites" : "Add to Favorites", a.getString(R.string.rename),
-                "Change login or address", "Move earlier", "Move later", a.getString(R.string.remove)));
+                "Change login or address", "Move earlier", "Move later", widthLabel("camera", c.id), a.getString(R.string.remove)));
         p.list(c.name, items, i -> {
             switch (i) {
                 case 0: pickRoom(c.roomId, id -> { c.roomId = id; save(); }); break;
@@ -236,6 +246,7 @@ final class Editors {
                 case 2: p.askText(a.getString(R.string.rename), c.name, "", n -> { c.name = n; save(); }); break;
                 case 3: p.askText("Camera address", Mjpeg.isStream(c.url) ? c.url : Commands.hostOf(c.url).replaceAll(":554$", ""), "", h -> cameraDetails(h.trim(), c)); break;
                 case 4: case 5: move("camera", c.id, i == 4 ? -1 : 1); break;
+                case 6: toggleWide("camera", c.id); break;
                 default: home().cameras.remove(c); save();
             }
         });
@@ -341,10 +352,11 @@ final class Editors {
 
     void sceneMenu(Home.Scene s) {
         p.list(s.name, Arrays.asList("Edit", s.favorite ? "Remove from Favorites" : "Add to Favorites", "Move earlier", "Move later",
-                a.getString(R.string.remove)), i -> {
+                widthLabel("scene", s.id), a.getString(R.string.remove)), i -> {
             if (i == 0) editScene(s);
             else if (i == 1) { s.favorite = !s.favorite; save(); }
             else if (i == 2 || i == 3) move("scene", s.id, i == 2 ? -1 : 1);
+            else if (i == 4) toggleWide("scene", s.id);
             else { home().removeScene(s.id); save(); }
         });
     }
@@ -483,11 +495,12 @@ final class Editors {
 
     void automationMenu(Home.Schedule s) {
         p.list(s.name, Arrays.asList("Edit", s.enabled ? "Pause" : "Resume", a.getString(R.string.rename), "Move earlier", "Move later",
-                a.getString(R.string.remove)), i -> {
+                widthLabel("automation", s.id), a.getString(R.string.remove)), i -> {
             if (i == 0) editAutomation(s);
             else if (i == 1) { s.enabled = !s.enabled; save(); }
             else if (i == 2) p.askText(a.getString(R.string.rename), s.name, "", n -> { s.name = n; save(); });
             else if (i == 3 || i == 4) move("automation", s.id, i == 3 ? -1 : 1);
+            else if (i == 5) toggleWide("automation", s.id);
             else { home().schedules.remove(s); save(); }
         });
     }

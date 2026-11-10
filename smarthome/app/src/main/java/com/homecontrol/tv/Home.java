@@ -238,6 +238,24 @@ final class Home {
      * Moves an item one place earlier (by = -1) or later (+1) in its list: the order tiles are shown in, on the TV
      * and on the phone. kind: device, scene, camera or automation. False when it can't move that way.
      */
+    /** Tiles shown double width ("kind:id", kind as in move()), on the TV and on the phone page. */
+    final java.util.Set<String> wide = new java.util.LinkedHashSet<>();
+
+    /** kind: device, scene, camera or automation ("sensor" and "schedule" count as device and automation). */
+    static String wideKind(String kind) {
+        return "sensor".equals(kind) ? "device" : "schedule".equals(kind) ? "automation" : kind;
+    }
+
+    boolean isWide(String kind, String id) {
+        return wide.contains(wideKind(kind) + ":" + id);
+    }
+
+    void setWide(String kind, String id, boolean on) {
+        String k = wideKind(kind) + ":" + id;
+        if (on) wide.add(k);
+        else wide.remove(k);
+    }
+
     boolean move(String kind, String id, int by) {
         if ("section".equals(kind)) {
             int i = sections.indexOf(id), j = i + by;
@@ -328,7 +346,8 @@ final class Home {
             JSONArray po = new JSONArray();
             for (PendingOff p : pendingOffs) po.put(new JSONObject().put("device", p.deviceId).put("at", p.atMillis));
             o.put("version", 2).put("rooms", rs).put("devices", ds).put("cameras", cs).put("scenes", ss)
-                    .put("schedules", sch).put("pending_off", po).put("sections", new JSONArray(sections));
+                    .put("schedules", sch).put("pending_off", po).put("sections", new JSONArray(sections))
+                    .put("wide", new JSONArray(wide));
             if (!Double.isNaN(latitude) && !Double.isNaN(longitude)) o.put("latitude", latitude).put("longitude", longitude);
             return o.toString();
         } catch (JSONException e) {
@@ -385,6 +404,8 @@ final class Home {
                 if ((!x.sceneId.isEmpty() || !x.actions.isEmpty()) && x.days != 0) h.schedules.add(x);
             }
             JSONArray secs = o.optJSONArray("sections");
+            JSONArray wd = o.optJSONArray("wide");
+            for (int i = 0; wd != null && i < wd.length(); i++) h.wide.add(wd.optString(i));
             if (secs != null) {   // the saved order, then any section added since
                 List<String> order = new ArrayList<>();
                 for (int i = 0; i < secs.length(); i++) {

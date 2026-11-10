@@ -139,7 +139,9 @@ public class MainActivity extends Activity {
         glm.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
             @Override
             public int getSpanSize(int position) {
-                return tiles.get(position).type == Tile.HEADER ? COLUMNS : 1;
+                Tile t = tiles.get(position);
+                if (t.type == Tile.HEADER) return COLUMNS;
+                return home.isWide(t.kind, t.id) ? 2 : 1;   // a double-width tile (the tile's menu: Width)
             }
         });
         grid.setLayoutManager(glm);
