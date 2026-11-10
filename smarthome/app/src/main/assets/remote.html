@@ -94,10 +94,36 @@
 
   #pad { aspect-ratio: 1.15; width: 100%; border-radius: 26px; background: var(--tile); position: relative; touch-action: none; overflow: hidden; }
   #pad .hint { position: absolute; inset: 0; display: grid; place-items: center; color: #48484a; font-size: 13px; pointer-events: none; }
-  #dot { position: absolute; width: 60px; height: 60px; margin: -30px 0 0 -30px; border-radius: 50%; background: rgb(255 255 255 / .12);
-         opacity: 0; transition: opacity .25s; pointer-events: none; }
-  .keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 12px; }
-  .key { height: 54px; border-radius: 16px; background: var(--tile); display: grid; place-items: center; }
+  /* The remote, in glass (the look of couch-tv's phone remote, github.com/Seagey/couch-tv): a swipe pad with chevrons and a ring, round controls, a volume pill */
+  #remoteSheet .panel { background: rgb(34 34 40 / .74); -webkit-backdrop-filter: blur(28px) saturate(170%); backdrop-filter: blur(28px) saturate(170%);
+    border-top: 1px solid rgb(255 255 255 / .14); }
+  .glass { background: rgb(255 255 255 / .13); border: 1px solid rgb(255 255 255 / .17); box-shadow: inset 0 1px 0 rgb(255 255 255 / .1);
+    -webkit-backdrop-filter: blur(18px) saturate(160%); backdrop-filter: blur(18px) saturate(160%); }
+  .glass:active, .ckey.down { background: rgb(255 255 255 / .24); }
+  #remoteSheet .seg.mode { background: rgb(255 255 255 / .1); border: 1px solid rgb(255 255 255 / .14); }
+  #remoteSheet .seg.mode button.on { background: rgb(255 255 255 / .26); box-shadow: inset 0 1px 0 rgb(255 255 255 / .2); }
+  #remoteSheet .panel-head { gap: 8px; } #remoteSheet .panel-head b { flex: 1; }
+  .round { position: relative; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; flex: none; padding: 0; color: #fff; }
+  .round.big { width: 56px; height: 56px; }
+  .round svg, .volume svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
+  #pad { aspect-ratio: 1.1; border-radius: 34px; background: rgb(255 255 255 / .13); border: 1px solid rgb(255 255 255 / .17);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / .1); display: grid; place-items: center; }
+  #pad .chev { position: absolute; width: 24px; height: 24px; opacity: .38; fill: none; stroke: #fff; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round;
+    transition: opacity .35s, transform .35s cubic-bezier(.22, 1, .36, 1); pointer-events: none; }
+  #pad .chev.up { top: 16px; } #pad .chev.down { bottom: 16px; transform: rotate(180deg); }
+  #pad .chev.left { left: 16px; transform: rotate(-90deg); } #pad .chev.right { right: 16px; transform: rotate(90deg); }
+  #pad .chev.lit { opacity: 1; transition: none; }
+  #pad .chev.up.lit { transform: translateY(-3px); } #pad .chev.down.lit { transform: rotate(180deg) translateY(-3px); }
+  #pad .chev.left.lit { transform: rotate(-90deg) translateY(-3px); } #pad .chev.right.lit { transform: rotate(90deg) translateY(-3px); }
+  #pad .ring { width: 92px; height: 92px; border-radius: 50%; border: 1.5px solid rgb(255 255 255 / .24); transition: background .35s, transform .35s cubic-bezier(.22, 1, .36, 1); pointer-events: none; }
+  #pad .ring.lit { background: rgb(255 255 255 / .16); transform: scale(.94); transition: none; }
+  #pad .hint { place-items: end center; padding-bottom: 18px; color: rgb(255 255 255 / .5); }
+  #pad .spot { position: absolute; left: 0; top: 0; width: 120px; height: 120px; margin: -60px 0 0 -60px; border-radius: 50%; pointer-events: none; opacity: 0;
+    background: radial-gradient(closest-side, rgb(255 255 255 / .22), rgb(255 255 255 / 0)); transition: opacity .25s; }
+  .controls { display: flex; justify-content: space-between; margin-top: 14px; }
+  .volume { display: flex; align-items: stretch; height: 56px; border-radius: 28px; overflow: hidden; margin-top: 12px; }
+  .volume button { flex: 1; display: grid; place-items: center; color: #fff; }
+  .volume .vol-mid { flex: 1.3; color: rgb(255 255 255 / .74); }
   .key:active, .key.down { background: var(--tile2); }
   .key.power { color: var(--red); }
   .type { display: flex; gap: 8px; margin-top: 12px; }
@@ -197,19 +223,20 @@
 <div class="sheet" id="remoteSheet">
   <div class="panel">
     <div class="grab"></div>
-    <div class="panel-head"><b>TV Remote</b><span class="status"><i class="dot" id="rDot"></i><span id="rStatus">…</span></span></div>
+    <div class="panel-head"><b>TV Remote</b><span class="status"><i class="dot" id="rDot"></i><span id="rStatus">…</span></span><button class="ckey round glass power" data-key="power" aria-label="Power"><svg><use href="#i-power"/></svg></button></div>
     <div class="seg mode" id="rMode"><button data-mode="pad">Touchpad</button><button data-mode="screen">Screen</button></div>
-    <div id="pad"><div class="hint">Swipe to move · tap to select</div><div id="dot"></div></div>
+    <div id="pad"><svg class="chev up" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg><svg class="chev down" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg><svg class="chev left" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg><svg class="chev right" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg><div class="ring"></div><div class="spot" id="dot"></div><div class="hint">Swipe to move · tap the middle to select</div></div>
     <div id="scr"><img id="scrImg" alt="" draggable="false"><i id="scrTap"></i><span id="scrStatus"></span></div>
-    <div class="keys">
-      <button class="key" data-key="4" aria-label="Back"><svg><use href="#i-back"/></svg></button>
-      <button class="key" data-key="3" aria-label="Home"><svg><use href="#i-home"/></svg></button>
-      <button class="key" data-key="85" aria-label="Play or pause"><svg><use href="#i-play"/></svg></button>
-      <button class="key" data-key="82" aria-label="Menu"><svg><use href="#i-menu"/></svg></button>
-      <button class="key" data-key="25" data-repeat aria-label="Volume down"><svg><use href="#i-vdown"/></svg></button>
-      <button class="key" data-key="24" data-repeat aria-label="Volume up"><svg><use href="#i-vup"/></svg></button>
-      <button class="key" data-key="164" aria-label="Mute"><svg><use href="#i-mute"/></svg></button>
-      <button class="key power" data-key="power" aria-label="Power"><svg><use href="#i-power"/></svg></button>
+    <div class="controls">
+      <button class="ckey round big glass" data-key="4" aria-label="Back"><svg><use href="#i-back"/></svg></button>
+      <button class="ckey round big glass" data-key="3" aria-label="Home"><svg><use href="#i-home"/></svg></button>
+      <button class="ckey round big glass" data-key="85" aria-label="Play or pause"><svg><use href="#i-play"/></svg></button>
+      <button class="ckey round big glass" data-key="82" aria-label="Menu"><svg><use href="#i-menu"/></svg></button>
+    </div>
+    <div class="volume glass" role="group" aria-label="Volume">
+      <button class="ckey" data-key="25" data-repeat aria-label="Volume down"><svg><use href="#i-vdown"/></svg></button>
+      <button class="ckey vol-mid" data-key="164" aria-label="Mute"><svg><use href="#i-mute"/></svg></button>
+      <button class="ckey" data-key="24" data-repeat aria-label="Volume up"><svg><use href="#i-vup"/></svg></button>
     </div>
     <div class="type">
       <input id="text" placeholder="Type on the TV" autocomplete="off" autocapitalize="off" enterkeyhint="send">
@@ -813,7 +840,7 @@ document.querySelectorAll('.sheet').forEach(s => s.addEventListener('click', e =
 
 // ---- the TV remote ----
 function key(code) { buzz(); post('key?c=' + code); }
-document.querySelectorAll('.key').forEach(b => {
+document.querySelectorAll('.key, .ckey').forEach(b => {
   let timer = null;
   const stop = () => { clearTimeout(timer); clearInterval(timer); timer = null; b.classList.remove('down'); };
   b.addEventListener('pointerdown', e => {
@@ -860,27 +887,54 @@ setMode(rMode);
   img.addEventListener('pointercancel', () => { s0 = null; });
   img.addEventListener('contextmenu', e => e.preventDefault());
 }
-// touch pad: swipe = arrows (one per 48 px), tap = OK, tap near an edge = that arrow
+// swipe pad (as couch-tv's): tap an arrow zone or swipe to move (one step per 56 px, a quick flick is one step), tap the ring for OK,
+// hold an arrow zone to repeat; the chevrons and ring light up as keys go out
 const pad = $('#pad'), dot = $('#dot');
-let start = null, last = null, moved = false;
-const place = e => { const r = pad.getBoundingClientRect(); dot.style.left = (e.clientX - r.left) + 'px'; dot.style.top = (e.clientY - r.top) + 'px'; };
-pad.addEventListener('pointerdown', e => { pad.setPointerCapture(e.pointerId); start = last = { x: e.clientX, y: e.clientY }; moved = false; place(e); dot.style.opacity = 1; });
+const DIR = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }, CODE = { up: 19, down: 20, left: 21, right: 22, ok: 23 };
+const STEP = 56, FLICK = 22, REPEAT_AFTER = 420, REPEAT_EVERY = 160, OK_R = 64;
+let g = null;
+const lit = d => { const el = pad.querySelector(d === 'ok' ? '.ring' : '.chev.' + d); el.classList.add('lit'); setTimeout(() => el.classList.remove('lit'), 140); };
+const go = d => { key(CODE[d]); lit(d); };
+const stopTimers = s => { if (s) { clearTimeout(s.timer); clearInterval(s.timer); } };
+const spot = e => { const r = pad.getBoundingClientRect(); dot.style.left = (e.clientX - r.left) + 'px'; dot.style.top = (e.clientY - r.top) + 'px'; dot.style.opacity = 1; };
+const zoneAt = (r, x, y) => {
+  const dx = x - (r.left + r.width / 2), dy = y - (r.top + r.height / 2);
+  if (Math.hypot(dx, dy) <= OK_R) return 'ok';
+  const nx = dx / (r.width / 2), ny = dy / (r.height / 2);
+  return Math.abs(nx) > Math.abs(ny) ? (nx > 0 ? 'right' : 'left') : (ny > 0 ? 'down' : 'up');
+};
+pad.addEventListener('pointerdown', e => {
+  if (g || !e.isPrimary) return;
+  pad.setPointerCapture(e.pointerId);
+  const zone = zoneAt(pad.getBoundingClientRect(), e.clientX, e.clientY);
+  const s = g = { id: e.pointerId, x: e.clientX, y: e.clientY, ax: e.clientX, ay: e.clientY, steps: 0, moved: false, held: false, zone };
+  if (zone !== 'ok') s.timer = setTimeout(() => {
+    if (g !== s || s.moved) return;
+    s.held = true; go(zone);
+    s.timer = setInterval(() => { if (g === s && !s.moved) go(zone); else clearInterval(s.timer); }, REPEAT_EVERY);
+  }, REPEAT_AFTER);
+  spot(e);
+});
 pad.addEventListener('pointermove', e => {
-  if (!last) return; place(e);
-  const dx = e.clientX - last.x, dy = e.clientY - last.y, step = 48;
-  if (Math.abs(dx) >= step && Math.abs(dx) > Math.abs(dy)) { key(dx > 0 ? 22 : 21); last = { x: e.clientX, y: e.clientY }; moved = true; }
-  else if (Math.abs(dy) >= step) { key(dy > 0 ? 20 : 19); last = { x: e.clientX, y: e.clientY }; moved = true; }
+  const s = g; if (!s || e.pointerId !== s.id) return;
+  spot(e);
+  const dx = e.clientX - s.ax, dy = e.clientY - s.ay;
+  if (!s.moved && Math.hypot(e.clientX - s.x, e.clientY - s.y) > 10) { s.moved = true; stopTimers(s); }
+  if (!s.moved || Math.max(Math.abs(dx), Math.abs(dy)) < STEP) return;
+  const d = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
+  go(d); s.steps++;
+  s.ax += DIR[d][0] * STEP; s.ay += DIR[d][1] * STEP;
+  if (Math.abs(dx) > Math.abs(dy)) s.ay = e.clientY; else s.ax = e.clientX;
 });
 pad.addEventListener('pointerup', e => {
-  dot.style.opacity = 0; if (!start) return;
-  const dx = e.clientX - start.x, dy = e.clientY - start.y;
-  if (!moved && Math.hypot(dx, dy) < 14) {
-    const r = pad.getBoundingClientRect(), fx = (e.clientX - r.left) / r.width, fy = (e.clientY - r.top) / r.height, edge = .2;
-    key(fy < edge ? 19 : fy > 1 - edge ? 20 : fx < edge ? 21 : fx > 1 - edge ? 22 : 23);
-  } else if (!moved && Math.hypot(dx, dy) >= 24) key(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 22 : 21) : (dy > 0 ? 20 : 19));
-  start = last = null;
+  const s = g; if (!s || e.pointerId !== s.id) return;
+  g = null; dot.style.opacity = 0; stopTimers(s);
+  const dx = e.clientX - s.x, dy = e.clientY - s.y;
+  if (s.held && !s.moved) return;
+  if (!s.moved) return go(s.zone);
+  if (s.steps === 0 && Math.max(Math.abs(dx), Math.abs(dy)) >= FLICK) go(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'));
 });
-pad.addEventListener('pointercancel', () => { start = last = null; dot.style.opacity = 0; });
+pad.addEventListener('pointercancel', e => { const s = g; if (!s || e.pointerId !== s.id) return; stopTimers(s); g = null; dot.style.opacity = 0; });
 function send() { const t = $('#text').value; if (!t) return; buzz(); post('type', t); $('#text').value = ''; }
 $('#send').onclick = send;
 $('#text').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); send(); } });
