@@ -167,6 +167,10 @@ final class RemoteServer {
             reply(out, remote.open(body) ? 204 : 400, "text/plain", "");
         } else if (method.equals("GET") && action.equals("home")) {          // the Home tab
             reply(out, 200, "application/json", HomeApi.home(app).toString());
+        } else if (method.equals("GET") && action.equals("energy")) {        // the energy dashboard
+            reply(out, 200, "application/json", EnergyLog.json(app));
+        } else if (method.equals("POST") && action.equals("energy-price")) {
+            reply(out, HomeApi.price(app, param(query, "value")) ? 204 : 400, "text/plain", "");
         } else if (method.equals("GET") && action.equals("activity")) {
             reply(out, 200, "application/json", HomeApi.activity(app).toString());
         } else if (method.equals("POST") && action.equals("device")) {

@@ -42,6 +42,7 @@ public class RemoteService extends Service {
         server.start();
         name = new HomeName(this);   // http://home.local:8765
         name.start();
+        EnergyLog.startSampler(this);   // the energy dashboard goes on recording with the TV off
     }
 
     @Override
@@ -78,6 +79,7 @@ public class RemoteService extends Service {
     @Override
     public void onDestroy() {
         awake(false);
+        EnergyLog.stopSampler(this);
         server.stop();
         name.stop();
         super.onDestroy();

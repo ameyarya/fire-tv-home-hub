@@ -37,7 +37,7 @@ final class HomeApi {
     }
 
     /** Runs on the main thread and waits for the answer. */
-    private static <T> T onMain(Supplier<T> s) {
+    static <T> T onMain(Supplier<T> s) {
         Object[] out = {null};
         CountDownLatch done = new CountDownLatch(1);
         MAIN.post(() -> {
@@ -186,6 +186,23 @@ final class HomeApi {
             return false;
         });
         return Boolean.TRUE.equals(found);
+    }
+
+    /** Sets the electricity price per kWh (the dashboard's costs); false when it is not a sensible number. */
+    static boolean price(Context c, String value) {
+        double v;
+        try {
+            v = Double.parseDouble(value == null ? "" : value.trim());
+        } catch (NumberFormatException e) {
+            return false;
+        }
+        if (!Home.validPrice(v)) return false;
+        Boolean ok = onMain(() -> {
+            Storage.get(c).price = v;
+            Storage.save(c);
+            return true;
+        });
+        return Boolean.TRUE.equals(ok);
     }
 
     /** Makes a tile double height or normal (Home.setTall). */

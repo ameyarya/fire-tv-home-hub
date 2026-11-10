@@ -116,11 +116,12 @@ public class MainActivity extends Activity {
         status = findViewById(R.id.status);
         grid = findViewById(R.id.grid);
         filterRow = findViewById(R.id.filters);
+        findViewById(R.id.btnEnergy).setOnClickListener(v -> startActivity(new Intent(this, EnergyActivity.class)));
         findViewById(R.id.btnAdd).setOnClickListener(v -> editors.addMenu());
         findViewById(R.id.btnActivity).setOnClickListener(v -> editors.activity());
         findViewById(R.id.btnSettings).setOnClickListener(v -> editors.settings());
         // Down from the top buttons goes to the chosen filter, not whichever pill happens to sit below.
-        for (int id : new int[]{R.id.btnAdd, R.id.btnActivity, R.id.btnSettings}) {
+        for (int id : new int[]{R.id.btnEnergy, R.id.btnAdd, R.id.btnActivity, R.id.btnSettings}) {
             findViewById(id).setOnKeyListener((v, keyCode, event) -> {
                 if (keyCode != KeyEvent.KEYCODE_DPAD_DOWN || event.getAction() != KeyEvent.ACTION_DOWN) return false;
                 focusFilter();
@@ -166,6 +167,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onPause() {
         scene.stop();
+        EnergyLog.flush(this);
         super.onPause();
         Storage.unlisten(onStorageChanged);
         main.removeCallbacks(poll);
@@ -464,6 +466,7 @@ public class MainActivity extends Activity {
                 st = null;
             }
             final Shelly.Status got = st;
+            EnergyLog.record(getApplicationContext(), d.id, got == null ? Double.NaN : got.watts);   // the dashboard's history
             main.post(() -> {
                 if (got == null) offline.add(d.id);
                 else {

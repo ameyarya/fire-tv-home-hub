@@ -159,6 +159,13 @@ final class Home {
     final List<String> sections = new ArrayList<>(SECTIONS);
     /** For sunrise and sunset automations; NaN until set (Settings → Location, or home.sh location). */
     double latitude = Double.NaN, longitude = Double.NaN;
+    /** What a kWh costs, for the energy dashboard's money figures (Settings → Electricity price). */
+    static final double DEFAULT_PRICE = 0.30, MAX_PRICE = 10;
+    double price = DEFAULT_PRICE;
+
+    static boolean validPrice(double v) {
+        return !Double.isNaN(v) && !Double.isInfinite(v) && v > 0 && v <= MAX_PRICE;
+    }
 
     static String newId() {
         return UUID.randomUUID().toString().substring(0, 8);
@@ -362,6 +369,7 @@ final class Home {
                     .put("schedules", sch).put("pending_off", po).put("sections", new JSONArray(sections))
                     .put("wide", new JSONArray(wide)).put("tall", new JSONArray(tall));
             if (!Double.isNaN(latitude) && !Double.isNaN(longitude)) o.put("latitude", latitude).put("longitude", longitude);
+            o.put("price", price);
             return o.toString();
         } catch (JSONException e) {
             throw new IllegalStateException(e);
@@ -438,6 +446,7 @@ final class Home {
                 JSONObject p = po.optJSONObject(i);
                 if (p != null && h.device(p.optString("device")) != null) h.pendingOffs.add(new PendingOff(p.optString("device"), p.optLong("at")));
             }
+            if (validPrice(o.optDouble("price", Double.NaN))) h.price = o.optDouble("price");
             if (o.has("latitude") && o.has("longitude")) {
                 h.latitude = o.optDouble("latitude", Double.NaN);
                 h.longitude = o.optDouble("longitude", Double.NaN);

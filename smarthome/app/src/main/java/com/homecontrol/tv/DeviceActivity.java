@@ -150,6 +150,7 @@ public class DeviceActivity extends Activity {
             } catch (IOException ignored) {
             }
             Shelly.Status got = st;
+            EnergyLog.record(getApplicationContext(), d.id, got == null || !d.hasSwitch ? Double.NaN : got.watts);
             double[] gotEnergy = en;
             main.post(() -> {
                 offline = got == null;

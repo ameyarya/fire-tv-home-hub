@@ -34,6 +34,7 @@ router so the link stays put):
   element under it.)
 - **Remotes** section, **TV**: touchpad, Back / Home / Play / Menu, volume, power and typing on the TV.
 - **Activity**, behind ☰.
+- **Energy**, the ⚡ at the top (also on the TV): power now, today, this month and where it is heading, the last 7 days, a chart by hour or by day, each plug's share, the busiest hour and day, what runs all the time, and costs at the electricity price you set. The plugs are read once a minute (while the phone remote is on) and the history stays on the TV (120 days).
 
 Pair a phone once: scan the QR code in Smart Home → Settings → Phone remote, or open `http://<TV address>:8765`
 and enter the 4-digit code shown there (change it under Settings → Phone remote → Change code). Optionally (Settings → *Phone remote when the TV is off*) the TV keeps its

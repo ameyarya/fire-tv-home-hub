@@ -151,6 +151,25 @@
   .log { font-size: 14px; line-height: 1.55; color: #c7c7cc; white-space: pre-wrap; }
   .log div { padding: 8px 0; border-bottom: 1px solid #1f1f21; } .log time { color: var(--dim); font-size: 12px; display: block; }
 
+  /* the energy dashboard: the same cards, chart and lists as the TV */
+  #ePrice { height: 34px; font-size: 13px; padding: 0 12px; }
+  .egrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+  .ecard { background: linear-gradient(rgb(255 255 255 / .17), rgb(255 255 255 / .08)); border: 1px solid rgb(255 255 255 / .14); border-radius: 18px; padding: 12px 14px; min-width: 0; }
+  .ecard small { display: block; font-size: 11px; font-weight: 500; letter-spacing: .16em; color: var(--dim); text-transform: uppercase; }
+  .ecard .big { font-size: 28px; font-weight: 300; margin: 2px 0; white-space: nowrap; }
+  .ecard .big.mid { font-size: 19px; font-weight: 400; margin: 6px 0 2px; }
+  .ecard p { margin: 0; font-size: 13px; color: rgb(255 255 255 / .8); }
+  .ecard p.dim { color: var(--dim); font-size: 12px; }
+  .ecard .up { color: #ffb454; } .ecard .down { color: var(--green); }
+  .echart { margin-top: 12px; } .echart .head { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+  .echart .head b { font-size: 14px; font-weight: 500; } .echart .head span { font-size: 12px; color: var(--dim); text-align: right; }
+  .echart svg { width: 100%; height: 170px; display: block; margin-top: 6px; }
+  .echart text { fill: rgb(255 255 255 / .6); font-size: 10px; font-family: inherit; }
+  .edev { margin-top: 12px; } .edev b { font-size: 14px; font-weight: 500; }
+  .edev .line { display: flex; justify-content: space-between; gap: 10px; margin-top: 10px; font-size: 14px; }
+  .edev .line span:last-child { font-size: 13px; color: rgb(255 255 255 / .8); white-space: nowrap; }
+  .edev .track { height: 4px; border-radius: 2px; background: rgb(255 255 255 / .12); margin-top: 5px; overflow: hidden; }
+  .edev .track i { display: block; height: 100%; background: rgb(255 255 255 / .8); } .edev .track i.live { background: var(--green); }
   /* edit mode: arrows on each tile to move it */
   .pill.on { background: var(--on); color: var(--on-text); }
   .mv { position: absolute; top: 8px; width: 34px; height: 34px; border-radius: 50%; background: #3a3a3c; display: none;
@@ -225,6 +244,7 @@
   <symbol id="i-power" viewBox="0 0 24 24"><path d="M13 3h-2v10h2V3zm4.8 2.2-1.4 1.4A7 7 0 1 1 7.6 6.6L6.2 5.2A9 9 0 1 0 17.8 5.2z"/></symbol>
   <symbol id="i-gear" viewBox="0 0 24 24"><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.4 7.4 0 0 0-1.7-1L15 3h-4l-.4 2.9a7.4 7.4 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.6 7.6 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.4 7.4 0 0 0 1.7 1L11 21h4l.4-2.9a7.4 7.4 0 0 0 1.7-1l2.5 1 2-3.5-2.2-1.6zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)"/></symbol>
   <symbol id="i-resize" viewBox="0 0 24 24"><path d="M8 7l-5 5 5 5v-3.5h8V17l5-5-5-5v3.5H8z"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M11 21h-1l1-7H7.5c-.88 0-.33-.75-.31-.78C8.48 10.94 10.42 7.54 13.01 3h1l-1 7h3.51c.4 0 .62.19.4.66C12.97 17.55 11 21 11 21z"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></symbol>
   <symbol id="i-edit" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.8 9.94l-3.75-3.75L3 17.25zM20.7 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></symbol>
   <symbol id="i-kbd" viewBox="0 0 24 24"><path d="M20 5H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm-9 3h2v2h-2V8zm0 3h2v2h-2v-2zM8 8h2v2H8V8zm0 3h2v2H8v-2zm-1 2H5v-2h2v2zm0-3H5V8h2v2zm9 7H8v-2h8v2zm0-4h-2v-2h2v2zm0-3h-2V8h2v2zm3 3h-2v-2h2v2zm0-3h-2V8h2v2z"/></symbol>
@@ -234,6 +254,7 @@
   <header>
     <h1>Home</h1>
     <div class="pills">
+      <button class="pill icon" id="openEnergy" aria-label="Energy"><svg><use href="#i-bolt"/></svg></button>
       <button class="pill icon" id="addBtn" aria-label="Add"><svg><use href="#i-plus"/></svg></button>
       <button class="pill icon" id="openLog" aria-label="Activity"><svg><use href="#i-list"/></svg></button>
       <button class="pill icon" id="openSettings" aria-label="Settings"><svg><use href="#i-gear"/></svg></button>
@@ -270,6 +291,15 @@
       <input id="text" placeholder="Type on the TV" autocomplete="off" autocapitalize="off" enterkeyhint="send">
       <button id="send">Send</button>
     </div>
+  </div>
+</div>
+
+<div class="sheet" id="energySheet">
+  <div class="panel">
+    <div class="grab"></div>
+    <div class="panel-head"><b>Energy</b><button class="pill" id="ePrice"></button></div>
+    <div class="seg mode" id="eRange"><button data-r="0" class="on">Today</button><button data-r="1">7 days</button><button data-r="2">30 days</button></div>
+    <div id="energy"><p class="empty">Loading…</p></div>
   </div>
 </div>
 
@@ -419,7 +449,8 @@ $('#editBtn').onclick = () => {
   toast(editing ? 'Arrows move tiles and sections; tap a tile to rename or edit it. Tap ✎ again when done.' : 'Done');
 };
 if (location.hash === '#edit') $('#editBtn').click();   // open straight into edit mode
-if (location.hash === '#add') setTimeout(addMenu, 0);   // or straight into + Add
+if (location.hash === '#add') setTimeout(addMenu, 0);
+if (location.hash === '#energy') setTimeout(() => $('#openEnergy').click(), 0);   // or straight into + Add
 $('#sections').addEventListener('click', e => {
   const tl = e.target.closest('[data-tall]');
   if (tl) {
@@ -871,8 +902,90 @@ document.addEventListener('visibilitychange', load);
 function sheet(id, open) {
   $(id).classList.toggle('open', open);
   if (id === '#motionSheet' && !open) hideClip();
+  if (id === '#energySheet') { clearInterval(sheet.e); if (open) { loadEnergy(); sheet.e = setInterval(loadEnergy, 10000); } }
   if (id === '#remoteSheet') { clearInterval(sheet.t); if (open) { status(); sheet.t = setInterval(status, 3000); } }
 }
+// ---- the energy dashboard: the numbers come from the TV (EnergyStats); written the way the TV writes them (EnergyFmt) ----
+const eNum = {
+  energy(wh) { if (!isFinite(wh)) return '\u2013'; const a = Math.abs(wh);
+    if (Math.round(a) < 1000) return (a < 10 && a !== Math.round(a) ? wh.toFixed(1) : String(Math.round(wh))) + ' Wh';
+    const k = wh / 1000; return a < 9995 ? k.toFixed(2) + ' kWh' : a < 99950 ? k.toFixed(1) + ' kWh' : Math.round(k) + ' kWh'; },
+  power(w) { if (!isFinite(w)) return '\u2013'; return Math.round(Math.abs(w)) < 1000 ? (Math.abs(w) < 10 && w !== Math.round(w) ? w.toFixed(1) : String(Math.round(w))) + ' W' : (w / 1000).toFixed(2) + ' kW'; },
+  money(v) { if (!isFinite(v)) return '\u2013'; const a = Math.abs(v); return (v < 0 ? '-' : '') + '$' + (a < 100 ? a.toFixed(2) : String(Math.round(a))); },
+  change(f) { if (f === null || !isFinite(f)) return '\u2013'; const p = Math.round(f * 100); return p === 0 ? '\u00b10%' : (p > 0 ? '+' : '\u2212') + Math.abs(p) + '%'; },
+  hour(h) { h = ((h % 24) + 24) % 24; return (h % 12 === 0 ? 12 : h % 12) + (h < 12 ? ' AM' : ' PM'); },
+  tick(h) { return h % 3 ? '' : (h % 12 === 0 ? 12 : h % 12) + (h < 12 ? 'a' : 'p'); },
+  day(s) { const d = new Date(s + 'T12:00:00'); return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getDay()] + ' ' + d.getDate() + ' ' + ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()]; },
+  nice(max) { if (!(max > 0)) return 1; const p = Math.pow(10, Math.floor(Math.log10(max))); for (const m of [1, 2, 2.5, 5, 10]) if (max <= m * p + 1e-9) return m * p; return 10 * p; },
+  cost(wh, price) { return wh / 1000 * price; }
+};
+let E = null, eRange = 0;
+function eChart(values, compare, ticks, lit) {
+  const W = 340, H = 170, L = 48, B = 150, T = 8, R = 338;
+  const max = Math.max(0, ...values, ...(compare || []));
+  if (max <= 0) return `<svg viewBox="0 0 ${W} ${H}"><text x="${W / 2}" y="${H / 2}" text-anchor="middle" style="font-size:13px">Nothing recorded yet</text></svg>`;
+  const top = eNum.nice(max); let s = `<svg viewBox="0 0 ${W} ${H}">`;
+  for (let i = 0; i <= 2; i++) { const y = B - (B - T) * i / 2;
+    s += `<line x1="${L}" x2="${R}" y1="${y}" y2="${y}" stroke="rgba(255,255,255,.15)"/><text x="${L - 5}" y="${y + 3.5}" text-anchor="end">${eNum.energy(top * i / 2).replace('.00', '')}</text>`; }
+  const n = values.length, slot = (R - L) / n, bw = Math.max(2, slot * .62);
+  values.forEach((v, i) => { const x = L + slot * i + (slot - bw) / 2, hh = v / top * (B - T);
+    s += `<rect x="${x}" y="${B - Math.max(hh, v > 0 ? 2 : 0)}" width="${bw}" height="${Math.max(hh, v > 0 ? 2 : 0)}" rx="${Math.min(3, bw / 2)}" fill="${i === lit ? '#4cd08a' : 'rgba(255,255,255,.6)'}"/>`;
+    if (compare && compare[i] > 0) { const y = B - compare[i] / top * (B - T); s += `<line x1="${x - 1}" x2="${x + bw + 1}" y1="${y}" y2="${y}" stroke="rgba(255,255,255,.7)" stroke-width="1.6" stroke-linecap="round"/>`; } });
+  ticks.forEach((t, i) => { if (t) s += `<text x="${L + slot * i + slot / 2}" y="${H - 5}" text-anchor="middle">${t}</text>`; });
+  return s + '</svg>';
+}
+function energyPage() {
+  if (!E) return '<p class="empty">Loading\u2026</p>';
+  const p = E.price, c = wh => eNum.money(eNum.cost(wh, p));
+  const cmp = (f, what) => f === null ? '<p class="dim">Nothing to compare yet</p>' : `<p class="${f > .005 ? 'up' : f < -.005 ? 'down' : 'dim'}">${eNum.change(f)} ${what}</p>`;
+  const chY = E.yesterdaySoFarWh < 1 ? null : (E.todayWh - E.yesterdaySoFarWh) / E.yesterdaySoFarWh;
+  const chW = E.previousWeekWh < 1 ? null : (E.weekWh - E.previousWeekWh) / E.previousWeekWh;
+  const idle = E.onCount === 0 ? 'Everything is idle' : E.onCount + (E.onCount === 1 ? ' plug drawing power' : ' plugs drawing power');
+  let chart, title, note;
+  if (eRange === 0) { title = 'Today, by hour'; note = '\u2014 same hour yesterday'; chart = eChart(E.hourToday, E.hourYesterday, E.hourToday.map((_, h) => eNum.tick(h)), E.hour); }
+  else if (eRange === 1) {
+    const now = E.dayWh.slice(23), before = E.dayWh.slice(16, 23), sum = now.reduce((a, b) => a + b, 0);
+    title = 'Last 7 days'; note = 'Average ' + eNum.energy(sum / 7) + ' a day \u00b7 \u2014 the week before';
+    chart = eChart(now, before, E.days.slice(23).map(d => eNum.day(d).slice(0, 3)), 6);
+  } else {
+    title = 'Last 30 days'; note = 'Average ' + eNum.energy(E.dayWh.reduce((a, b) => a + b, 0) / 30) + ' a day';
+    chart = eChart(E.dayWh, null, E.days.map((d, i) => { const n = +d.slice(8); return n % 5 === 0 || i === 29 ? String(n) : ''; }), 29);
+  }
+  const use = u => eRange === 0 ? u.todayWh : eRange === 1 ? u.weekWh : u.thirtyWh;
+  const devs = E.devices.slice().sort((a, b) => use(b) - use(a)), total = devs.reduce((a, u) => a + use(u), 0);
+  const shown = devs.length > 6 ? 5 : devs.length;
+  let rows = devs.slice(0, shown).map(u => `<div class="line"><span>${esc(u.name)}</span><span>${eNum.energy(use(u))} \u00b7 ${c(use(u))}</span></div>
+    <div class="track"><i class="${u.nowW >= 1 ? 'live' : ''}" style="width:${total > 0 ? Math.round(use(u) / total * 1000) / 10 : 0}%"></i></div>`).join('');
+  if (devs.length > 6) rows += `<p class="note">${devs.length - shown} more \u00b7 ${eNum.energy(devs.slice(shown).reduce((a, u) => a + use(u), 0))}</p>`;
+  if (!devs.length) rows = '<p class="note">No plugs yet. Add one from the Home screen.</p>';
+  const base = E.baseLoadW;
+  return `<div class="egrid">
+    <div class="ecard"><small>Now</small><div class="big">${eNum.power(E.nowW)}</div><p>${idle}</p>${E.nowW < 1 ? '' : `<p class="dim">\u2248 ${eNum.money(eNum.cost(E.nowW * 24, p))} a day at this rate</p>`}</div>
+    <div class="ecard"><small>Today</small><div class="big">${eNum.energy(E.todayWh)}</div><p>${c(E.todayWh)} so far</p>${cmp(chY, 'vs yesterday so far')}</div>
+    <div class="ecard"><small>This month</small><div class="big">${eNum.energy(E.monthWh)}</div><p>${c(E.monthWh)} so far</p><p class="dim">${E.projectedMonthWh === null ? 'Too early to project' : 'On track for ' + eNum.energy(E.projectedMonthWh) + ' \u00b7 ' + c(E.projectedMonthWh)}</p></div>
+    <div class="ecard"><small>Last 7 days</small><div class="big">${eNum.energy(E.weekWh)}</div><p>${c(E.weekWh)}</p>${cmp(chW, 'vs the week before')}</div>
+  </div>
+  <div class="ecard echart"><div class="head"><b>${title}</b><span>${note}</span></div>${chart}</div>
+  <div class="ecard edev"><b>${['By plug, today', 'By plug, 7 days', 'By plug, 30 days'][eRange]}</b>${rows}</div>
+  <div class="egrid">
+    <div class="ecard"><small>Peak hour today</small><div class="big mid">${E.peakHour < 0 ? '\u2013' : eNum.hour(E.peakHour)}</div><p class="dim">${E.peakHour < 0 ? 'Nothing used yet today' : eNum.energy(E.peakHourWh) + ' in that hour'}</p></div>
+    <div class="ecard"><small>Always on</small><div class="big mid">${base === null ? 'Measuring\u2026' : eNum.power(base)}</div><p class="dim">${base === null ? 'Needs a few quiet hours of readings' : '\u2248 ' + eNum.money(base * 24 * 365 / 1000 * p) + ' a year, even when idle'}</p></div>
+    <div class="ecard"><small>Busiest day</small><div class="big mid">${E.busiestDay === null || E.busiestDayWh <= 0 ? '\u2013' : eNum.day(E.busiestDay)}</div><p class="dim">${E.busiestDay === null || E.busiestDayWh <= 0 ? 'Of the last 30 days' : eNum.energy(E.busiestDayWh) + ' \u00b7 ' + c(E.busiestDayWh)}</p></div>
+    <div class="ecard"><small>Recording</small><div class="big mid">${E.firstDay === null ? 'Starting now' : E.daysTracked + (E.daysTracked === 1 ? ' day' : ' days')}</div><p class="dim">${E.firstDay === null ? 'Readings come in every minute' : 'Since ' + eNum.day(E.firstDay)}</p></div>
+  </div>`;
+}
+function energyDraw() {
+  $('#energy').innerHTML = energyPage();
+  $('#ePrice').textContent = E ? '$' + (s => !s.includes('.') ? s + '.00' : s.split('.')[1].length === 1 ? s + '0' : s)(String(+E.price.toFixed(3))) + ' / kWh' : '';
+  document.querySelectorAll('#eRange button').forEach(b => b.classList.toggle('on', +b.dataset.r === eRange));
+}
+function loadEnergy() { return fetch(api + 'energy').then(r => r.json()).then(j => { E = j; energyDraw(); }).catch(() => {}); }
+$('#openEnergy').onclick = () => { sheet('#energySheet', true); energyDraw(); };
+$('#eRange').onclick = e => { const b = e.target.closest('button'); if (b) { eRange = +b.dataset.r; energyDraw(); } };
+$('#ePrice').onclick = () => {
+  const v = prompt('Electricity price per kWh', E ? String(+E.price.toFixed(3)) : '0.30'); if (v === null) return;
+  post('energy-price?value=' + encodeURIComponent(v.trim().replace(',', '.'))).then(r => { if (r && !r.ok) toast('A price per kWh, like 0.30'); loadEnergy(); });
+};
 $('#openLog').onclick = () => {
   sheet('#logSheet', true);
   fetch(api + 'activity').then(r => r.json()).then(a => {

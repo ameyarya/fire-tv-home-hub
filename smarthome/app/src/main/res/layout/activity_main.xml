@@ -34,6 +34,7 @@
                 android:fontFamily="@font/outfit"
                 android:fontVariationSettings="'wght' 300" />
 
+            <TextView android:id="@+id/btnEnergy" style="@style/PillIcon" android:contentDescription="Energy" android:drawableStart="@drawable/ic_bolt" />
             <TextView android:id="@+id/btnAdd" style="@style/PillIcon" android:contentDescription="@string/add" android:drawableStart="@drawable/ic_add" />
             <TextView android:id="@+id/btnActivity" style="@style/PillIcon" android:contentDescription="@string/activity" android:drawableStart="@drawable/ic_list" />
             <TextView android:id="@+id/btnSettings" style="@style/PillIcon" android:contentDescription="@string/settings" android:drawableStart="@drawable/ic_gear" />

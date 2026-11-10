@@ -28,6 +28,8 @@ import java.io.IOException;
  *   ... -a com.homecontrol.tv.CLEAR_ACTIVITY                 (home.sh clear-activity)
  *   ... -a com.homecontrol.tv.REMOTE_CODE --es code 1234   (the phone remote's 4-digit code)
  *   ... -a com.homecontrol.tv.REMOTE_LINK            (the phone remote's secret: setup for the voice stick)
+ *   ... -a com.homecontrol.tv.ENERGY [--ez sample true]  (the energy dashboard's numbers as JSON; sample: ask every plug first)
+ *   ... -a com.homecontrol.tv.ENERGY_PRICE --es value 0.30   (the electricity price per kWh)
  *   ... -a com.homecontrol.tv.BACKUP / RESTORE      (UI tests: keep the owner's setup on the TV meanwhile)
  */
 public class ControlReceiver extends BroadcastReceiver {
@@ -58,7 +60,17 @@ public class ControlReceiver extends BroadcastReceiver {
         PendingResult result = goAsync();
         new Thread(() -> {
             String[] error = {null};
-            if (action.equals(Commands.P + "CLEAR_ACTIVITY")) {
+            String[] energy = {null};
+            if (action.equals(Commands.P + "ENERGY")) {
+                if (intent.getBooleanExtra("sample", false)) EnergyLog.sampleNow(ctx);
+                try {
+                    energy[0] = EnergyLog.json(ctx);
+                } catch (org.json.JSONException e) {
+                    error[0] = "no energy numbers: " + e.getMessage();
+                }
+            } else if (action.equals(Commands.P + "ENERGY_PRICE")) {
+                if (!HomeApi.price(ctx, intent.getStringExtra("value"))) error[0] = "a price per kWh above 0, like 0.30";
+            } else if (action.equals(Commands.P + "CLEAR_ACTIVITY")) {
                 ActivityLog.replace(ctx, "");
             } else if (action.equals(Commands.P + "BACKUP") || action.equals(Commands.P + "RESTORE")) {
                 onMain(ctx, () -> {
@@ -102,6 +114,7 @@ public class ControlReceiver extends BroadcastReceiver {
                 String report = Commands.report(Storage.get(ctx), java.time.ZoneId.systemDefault());
                 if (Storage.hasBackup(ctx)) report = report.replaceFirst("^\\{", "{\"backup\":true,");
                 report = report.replaceFirst("^\\{", "{\"activity\":" + new org.json.JSONArray(ActivityLog.recent(ctx, 30)) + ",");
+                if (energy[0] != null) report = energy[0];
                 result.setResultData(error[0] == null ? report
                         : "{\"error\":\"" + error[0].replace("\"", "'") + "\"}");
                 result.finish();

@@ -71,6 +71,12 @@
             android:screenOrientation="landscape" />
 
         <activity
+            android:name=".EnergyActivity"
+            android:exported="false"
+            android:configChanges="keyboard|keyboardHidden|navigation|screenSize|orientation|uiMode"
+            android:screenOrientation="landscape" />
+
+        <activity
             android:name=".CameraActivity"
             android:exported="false"
             android:configChanges="keyboard|keyboardHidden|navigation|screenSize|orientation|uiMode"
@@ -109,6 +115,8 @@
                 <action android:name="com.homecontrol.tv.RESTORE" />
                 <action android:name="com.homecontrol.tv.REMOTE_LINK" />
                 <action android:name="com.homecontrol.tv.REMOTE_AWAKE" />
+                <action android:name="com.homecontrol.tv.ENERGY" />
+                <action android:name="com.homecontrol.tv.ENERGY_PRICE" />
             </intent-filter>
         </receiver>
 
