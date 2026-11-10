@@ -37,7 +37,7 @@ import java.util.Locale;
  */
 public final class SceneView extends View {
 
-    private static final long EVERY_MS = 60_000, FADE_MS = 1_600;
+    private static final long EVERY_MS = 30_000, FADE_MS = 1_600;
 
     /** One scene: its three pictures and where and how its clock is drawn (pixels at 1920 wide). */
     private static final class Look {
@@ -110,7 +110,7 @@ public final class SceneView extends View {
     private final Rect bounds = new Rect();
 
     private Scene current, next;
-    private int index = (int) ((System.currentTimeMillis() / 86_400_000L) % LOOKS.length);
+    private int index = timeIndex();
     private float fade = 1f;   // how far `next` has come in over `current`
     private boolean running, loading;
     private String time = "", date = "";
@@ -133,6 +133,16 @@ public final class SceneView extends View {
         if (Math.abs(l - level) < 0.005f) return;
         level = l;
         invalidate();
+    }
+
+    /** The scene for this moment: from the clock, so the wallpaper and the screensaver always show the same one. */
+    private static int timeIndex() {
+        return (int) ((System.currentTimeMillis() / EVERY_MS) % LOOKS.length);
+    }
+
+    /** Milliseconds to the next change of scene. */
+    private static long untilNext() {
+        return EVERY_MS - System.currentTimeMillis() % EVERY_MS;
     }
 
     private final Runnable rotate = this::startNext;
@@ -170,9 +180,14 @@ public final class SceneView extends View {
         if (running) return;
         running = true;
         refreshText();
+        if (!fixed) index = timeIndex();
+        if (current != null && current.look != LOOKS[index]) {
+            current.recycle();
+            current = null;
+        }
         if (current == null) current = load(LOOKS[index]);
         tick.run();
-        if (!fixed) main.postDelayed(rotate, EVERY_MS);
+        if (!fixed) main.postDelayed(rotate, untilNext());
     }
 
     /** Stops the timers and drops the scene waiting to come in; call from onPause. */
@@ -205,7 +220,12 @@ public final class SceneView extends View {
     private void startNext() {
         if (!running || loading) return;
         loading = true;
-        final int upcoming = (index + 1) % LOOKS.length;
+        final int upcoming = timeIndex();
+        if (upcoming == index) {   // not yet time
+            loading = false;
+            main.postDelayed(rotate, untilNext());
+            return;
+        }
         new Thread(() -> {
             Scene s = load(LOOKS[upcoming]);
             main.post(() -> {
@@ -229,7 +249,7 @@ public final class SceneView extends View {
                         index = upcoming;
                         fade = 1f;
                         loading = false;
-                        if (running) main.postDelayed(rotate, EVERY_MS);
+                        if (running) main.postDelayed(rotate, untilNext());
                         invalidate();
                     }
                 });
