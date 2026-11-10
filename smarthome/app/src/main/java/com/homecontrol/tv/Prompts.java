@@ -80,6 +80,8 @@ final class Prompts {
             panel.requestLayout();
         }
         w.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(0xF2101014));
+        android.widget.ListView lv = dialog.getListView();
+        if (lv != null && lv.getCount() > 0) lv.requestFocus();   // the first choice, not the Back button
     }
 
     boolean showing() {

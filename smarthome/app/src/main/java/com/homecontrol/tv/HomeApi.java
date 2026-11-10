@@ -123,7 +123,7 @@ final class HomeApi {
             if (next != null) a.put("next", next.format(fmt));
             autos.put(a);
         }
-        o.put("wide", new JSONArray(h.wide));
+        o.put("wide", new JSONArray(h.wide)).put("tall", new JSONArray(h.tall));
         return o.put("rooms", rooms).put("devices", devices).put("scenes", scenes).put("automations", autos).put("sections", new JSONArray(h.sections))
                 .put("cameras", cameras);
     }
@@ -186,6 +186,16 @@ final class HomeApi {
             return false;
         });
         return Boolean.TRUE.equals(found);
+    }
+
+    /** Makes a tile double height or normal (Home.setTall). */
+    static boolean tall(Context c, String kind, String id, boolean on) {
+        Boolean ok = onMain(() -> {
+            Storage.get(c).setTall(kind, id, on);
+            Storage.save(c);
+            return true;
+        });
+        return Boolean.TRUE.equals(ok);
     }
 
     /** Makes a tile double width or normal (Home.setWide). */

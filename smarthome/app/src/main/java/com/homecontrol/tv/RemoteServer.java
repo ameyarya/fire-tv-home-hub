@@ -176,6 +176,8 @@ final class RemoteServer {
             reply(out, ok < 0 ? 400 : 200, "application/json", "{\"done\":" + ok + "}");
         } else if (method.equals("POST") && action.equals("automation")) {
             reply(out, HomeApi.automation(app, param(query, "id"), "1".equals(param(query, "on"))) ? 204 : 400, "text/plain", "");
+        } else if (method.equals("POST") && action.equals("tall")) {
+            reply(out, HomeApi.tall(app, param(query, "kind"), param(query, "id"), "1".equals(param(query, "on"))) ? 204 : 400, "text/plain", "");
         } else if (method.equals("POST") && action.equals("wide")) {
             reply(out, HomeApi.wide(app, param(query, "kind"), param(query, "id"), "1".equals(param(query, "on"))) ? 204 : 400, "text/plain", "");
         } else if (method.equals("POST") && action.equals("move")) {

@@ -154,9 +154,13 @@
   .mv { position: absolute; top: 8px; width: 34px; height: 34px; border-radius: 50%; background: #3a3a3c; display: none;
         place-items: center; color: #fff; }
   .mv svg { width: 18px; height: 18px; }
-  .mv.w { right: 90px; } .tile:not(:has(.mv.l)) .mv.w { right: 10px; }
-  .mv.w {  font-size: 13px; font-weight: 600; }
+  /* size buttons (edit mode): lit when the tile is enlarged; width and height, bottom right */
+  .mv.w, .mv.h { top: auto; bottom: 10px; font-size: 18px; }
+  .mv.w { right: 50px; } .mv.h { right: 10px; }
+  .mv.set { background: #fff; color: #000; }
+  body.editing .tile .name, body.editing .tile .sub { padding-right: 92px; }
   .tile.wide { grid-column: span 2; }
+  .tile.tall { min-height: 226px; }   /* a row with one in it is tall: the others stretch, as on the TV */
   .mv.l { right: 50px; } .mv.r { right: 10px; } .mv.r svg { transform: rotate(180deg); }
   body.editing .mv { display: grid; }
   body.editing .tile .badge { visibility: hidden; }   /* the arrows take its corner */
@@ -344,10 +348,13 @@ function summary(h) {
 }
 function tile(cls, icon, badge, name, sub, data, kind, id) {
   const isWide = kind && (home.wide || []).includes(kind + ':' + id);
+  const isTall = kind && (home.tall || []).includes(kind + ':' + id);
   if (isWide) cls += ' wide';
+  if (isTall) cls += ' tall';
   const arrows = kind && kind !== 'remote' ? `<span class="mv l" data-move="${kind}" data-id="${esc(id)}" data-by="-1"><svg><use href="#i-back"/></svg></span>
     <span class="mv r" data-move="${kind}" data-id="${esc(id)}" data-by="1"><svg><use href="#i-back"/></svg></span>` : '';
-  const mv = kind ? `<span class="mv w" data-wide="${kind}" data-id="${esc(id)}" data-on="${isWide ? 0 : 1}">${isWide ? '1\u00d7' : '2\u00d7'}</span>` + arrows : '';
+  const mv = kind ? `<span class="mv w${isWide ? ' set' : ''}" data-wide="${kind}" data-id="${esc(id)}" data-on="${isWide ? 0 : 1}" title="Width">\u2194</span>`
+    + `<span class="mv h${isTall ? ' set' : ''}" data-tall="${kind}" data-id="${esc(id)}" data-on="${isTall ? 0 : 1}" title="Height">\u2195</span>` + arrows : '';
   return `<div class="tile ${cls}" role="button" ${data}><span class="top"><svg><use href="#${icon}"/></svg><span class="badge">${esc(badge)}</span></span>
     <span><div class="name">${esc(name)}</div><div class="sub">${esc(sub)}</div></span>${mv}</div>`;
 }
@@ -408,6 +415,12 @@ $('#editBtn').onclick = () => {
 if (location.hash === '#edit') $('#editBtn').click();   // open straight into edit mode
 if (location.hash === '#add') setTimeout(addMenu, 0);   // or straight into + Add
 $('#sections').addEventListener('click', e => {
+  const tl = e.target.closest('[data-tall]');
+  if (tl) {
+    buzz();
+    post(`tall?kind=${tl.dataset.tall}&id=${encodeURIComponent(tl.dataset.id)}&on=${tl.dataset.on}`).then(() => load());
+    return;
+  }
   const wd = e.target.closest('[data-wide]');
   if (wd) {
     buzz();

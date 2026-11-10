@@ -246,6 +246,19 @@ final class Home {
         return "sensor".equals(kind) ? "device" : "schedule".equals(kind) ? "automation" : kind;
     }
 
+    /** Tiles shown double height, the same way (a row with one in it is double height). */
+    final java.util.Set<String> tall = new java.util.LinkedHashSet<>();
+
+    boolean isTall(String kind, String id) {
+        return tall.contains(wideKind(kind) + ":" + id);
+    }
+
+    void setTall(String kind, String id, boolean on) {
+        String k = wideKind(kind) + ":" + id;
+        if (on) tall.add(k);
+        else tall.remove(k);
+    }
+
     boolean isWide(String kind, String id) {
         return wide.contains(wideKind(kind) + ":" + id);
     }
@@ -347,7 +360,7 @@ final class Home {
             for (PendingOff p : pendingOffs) po.put(new JSONObject().put("device", p.deviceId).put("at", p.atMillis));
             o.put("version", 2).put("rooms", rs).put("devices", ds).put("cameras", cs).put("scenes", ss)
                     .put("schedules", sch).put("pending_off", po).put("sections", new JSONArray(sections))
-                    .put("wide", new JSONArray(wide));
+                    .put("wide", new JSONArray(wide)).put("tall", new JSONArray(tall));
             if (!Double.isNaN(latitude) && !Double.isNaN(longitude)) o.put("latitude", latitude).put("longitude", longitude);
             return o.toString();
         } catch (JSONException e) {
@@ -406,6 +419,8 @@ final class Home {
             JSONArray secs = o.optJSONArray("sections");
             JSONArray wd = o.optJSONArray("wide");
             for (int i = 0; wd != null && i < wd.length(); i++) h.wide.add(wd.optString(i));
+            JSONArray tl = o.optJSONArray("tall");
+            for (int i = 0; tl != null && i < tl.length(); i++) h.tall.add(tl.optString(i));
             if (secs != null) {   // the saved order, then any section added since
                 List<String> order = new ArrayList<>();
                 for (int i = 0; i < secs.length(); i++) {

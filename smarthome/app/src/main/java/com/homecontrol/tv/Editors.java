@@ -224,6 +224,15 @@ final class Editors {
         return home().isWide(kind, id) ? "Width: back to 1\u00d7" : "Width: make it 2\u00d7";
     }
 
+    String heightLabel(String kind, String id) {
+        return home().isTall(kind, id) ? "Height: back to 1\u00d7" : "Height: make it 2\u00d7";
+    }
+
+    void toggleTall(String kind, String id) {
+        home().setTall(kind, id, !home().isTall(kind, id));
+        save();
+    }
+
     void toggleWide(String kind, String id) {
         home().setWide(kind, id, !home().isWide(kind, id));
         save();
@@ -238,7 +247,7 @@ final class Editors {
     void cameraMenu(Home.Camera c) {
         List<String> items = new ArrayList<>(Arrays.asList("Room: " + roomName(c.roomId),
                 c.favorite ? "Remove from Favorites" : "Add to Favorites", a.getString(R.string.rename),
-                "Change login or address", "Move earlier", "Move later", widthLabel("camera", c.id), a.getString(R.string.remove)));
+                "Change login or address", "Move earlier", "Move later", widthLabel("camera", c.id), heightLabel("camera", c.id), a.getString(R.string.remove)));
         p.list(c.name, items, i -> {
             switch (i) {
                 case 0: pickRoom(c.roomId, id -> { c.roomId = id; save(); }); break;
@@ -247,6 +256,7 @@ final class Editors {
                 case 3: p.askText("Camera address", Mjpeg.isStream(c.url) ? c.url : Commands.hostOf(c.url).replaceAll(":554$", ""), "", h -> cameraDetails(h.trim(), c)); break;
                 case 4: case 5: move("camera", c.id, i == 4 ? -1 : 1); break;
                 case 6: toggleWide("camera", c.id); break;
+                case 7: toggleTall("camera", c.id); break;
                 default: home().cameras.remove(c); save();
             }
         });
@@ -352,11 +362,12 @@ final class Editors {
 
     void sceneMenu(Home.Scene s) {
         p.list(s.name, Arrays.asList("Edit", s.favorite ? "Remove from Favorites" : "Add to Favorites", "Move earlier", "Move later",
-                widthLabel("scene", s.id), a.getString(R.string.remove)), i -> {
+                widthLabel("scene", s.id), heightLabel("scene", s.id), a.getString(R.string.remove)), i -> {
             if (i == 0) editScene(s);
             else if (i == 1) { s.favorite = !s.favorite; save(); }
             else if (i == 2 || i == 3) move("scene", s.id, i == 2 ? -1 : 1);
             else if (i == 4) toggleWide("scene", s.id);
+            else if (i == 5) toggleTall("scene", s.id);
             else { home().removeScene(s.id); save(); }
         });
     }
@@ -495,12 +506,13 @@ final class Editors {
 
     void automationMenu(Home.Schedule s) {
         p.list(s.name, Arrays.asList("Edit", s.enabled ? "Pause" : "Resume", a.getString(R.string.rename), "Move earlier", "Move later",
-                widthLabel("automation", s.id), a.getString(R.string.remove)), i -> {
+                widthLabel("automation", s.id), heightLabel("automation", s.id), a.getString(R.string.remove)), i -> {
             if (i == 0) editAutomation(s);
             else if (i == 1) { s.enabled = !s.enabled; save(); }
             else if (i == 2) p.askText(a.getString(R.string.rename), s.name, "", n -> { s.name = n; save(); });
             else if (i == 3 || i == 4) move("automation", s.id, i == 3 ? -1 : 1);
             else if (i == 5) toggleWide("automation", s.id);
+            else if (i == 6) toggleTall("automation", s.id);
             else { home().schedules.remove(s); save(); }
         });
     }

@@ -710,10 +710,23 @@ public class MainActivity extends Activity {
             state.setText(t.state);
             ImageView icon = v.findViewById(R.id.icon);
             icon.setImageResource(t.icon);
+            // A row with a double-height tile in it is double height (the phone page's grid does the same).
+            View card = v.findViewById(R.id.card);
+            card.getLayoutParams().height = (int) ((rowIsTall(position) ? 222 : 104) * getResources().getDisplayMetrics().density);
             boolean on = getString(R.string.on).equals(t.state) && (t.kind.equals("device"));
             // A plug that is on glows green, as accessories that are on light up in Apple Home.
             icon.setImageTintList(on ? android.content.res.ColorStateList.valueOf(0xFF4CD08A)
                     : getResources().getColorStateList(R.drawable.pill_text, getTheme()));
+        }
+
+        private boolean rowIsTall(int pos) {
+            GridLayoutManager.SpanSizeLookup spans = ((GridLayoutManager) grid.getLayoutManager()).getSpanSizeLookup();
+            int group = spans.getSpanGroupIndex(pos, COLUMNS);
+            for (int i = Math.max(0, pos - COLUMNS); i < Math.min(tiles.size(), pos + COLUMNS + 1); i++) {
+                Tile o = tiles.get(i);
+                if (o.type == Tile.ITEM && spans.getSpanGroupIndex(i, COLUMNS) == group && home.isTall(o.kind, o.id)) return true;
+            }
+            return false;
         }
 
         @Override
