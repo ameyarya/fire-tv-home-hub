@@ -9,6 +9,8 @@
     <style name="Dialog" parent="android:Theme.Material.Dialog.Alert">
         <item name="android:colorAccent">#FF4CD08A</item>
         <item name="android:windowBackground">@drawable/glass_panel</item>
+        <item name="android:windowMinWidthMajor">100%</item>
+        <item name="android:windowMinWidthMinor">100%</item>
     </style>
     <!-- Frosted pill, focus turns it white (pill_bg / pill_text, as on the clean launcher). -->
     <style name="Pill">

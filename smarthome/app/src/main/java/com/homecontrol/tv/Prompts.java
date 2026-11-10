@@ -31,6 +31,57 @@ final class Prompts {
         this.activity = activity;
     }
 
+    /**
+     * Every pop-up is a full page with a Back button on top and its title beside it, as on the phone page
+     * (the remote's Back key closes it too).
+     */
+    private View titleBar(String text) {
+        float d = activity.getResources().getDisplayMetrics().density;
+        android.widget.LinearLayout row = new android.widget.LinearLayout(activity);
+        row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+        row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        row.setPadding((int) (48 * d), (int) (32 * d), (int) (48 * d), (int) (12 * d));
+        android.widget.TextView back = new android.widget.TextView(activity);
+        back.setText("\u2039  Back");
+        back.setTextSize(15);
+        back.setTextColor(activity.getResources().getColorStateList(R.drawable.pill_text, activity.getTheme()));
+        back.setTypeface(activity.getResources().getFont(R.font.outfit));
+        back.setBackgroundResource(R.drawable.pill_bg);
+        back.setGravity(android.view.Gravity.CENTER);
+        back.setPadding((int) (20 * d), 0, (int) (22 * d), 0);
+        back.setFocusable(true);
+        back.setClickable(true);
+        back.setOnClickListener(v -> {
+            if (dialog != null) dialog.dismiss();
+        });
+        row.addView(back, new android.widget.LinearLayout.LayoutParams(-2, (int) (42 * d)));
+        android.widget.TextView t = new android.widget.TextView(activity);
+        t.setText(text);
+        t.setTextSize(28);
+        t.setTextColor(0xFFFFFFFF);
+        t.setTypeface(activity.getResources().getFont(R.font.outfit));
+        t.setSingleLine(true);
+        android.widget.LinearLayout.LayoutParams lp = new android.widget.LinearLayout.LayoutParams(0, -2, 1);
+        lp.setMarginStart((int) (24 * d));
+        row.addView(t, lp);
+        return row;
+    }
+
+    /** Makes the shown dialog fill the screen over a dark glass page. */
+    private void page() {
+        android.view.Window w = dialog.getWindow();
+        if (w == null) return;
+        w.setLayout(-1, -1);
+        w.setGravity(android.view.Gravity.TOP);
+        View panel = dialog.findViewById(activity.getResources().getIdentifier("parentPanel", "id", "android"));
+        if (panel != null && panel.getLayoutParams() != null) {   // the dialog's own box fills the page too
+            panel.getLayoutParams().width = -1;
+            panel.getLayoutParams().height = -1;
+            panel.requestLayout();
+        }
+        w.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(0xF2101014));
+    }
+
     boolean showing() {
         return dialog != null && dialog.isShowing();
     }
@@ -53,7 +104,7 @@ final class Prompts {
         box.setPadding(pad, pad / 2, pad, 0);
         box.addView(input);
         dialog = new AlertDialog.Builder(activity)
-                .setTitle(title)
+                .setCustomTitle(titleBar(title))
                 .setView(box)
                 .setPositiveButton(R.string.ok, (di, w) -> {
                     String text = input.getText().toString().trim();
@@ -64,6 +115,7 @@ final class Prompts {
                 .create();
         track(title, Arrays.asList("input"));
         dialog.show();
+        page();
         input.requestFocus();
     }
 
@@ -74,23 +126,25 @@ final class Prompts {
     /** Pick one. */
     void list(String title, List<String> options, Consumer<Integer> done) {
         dialog = new AlertDialog.Builder(activity)
-                .setTitle(title)
+                .setCustomTitle(titleBar(title))
                 .setItems(options.toArray(new String[0]), (di, which) -> done.accept(which))
                 .create();
         track(title, options);
         dialog.show();
+        page();
     }
 
     /** Tick any; Next passes the ticks on. */
     void checks(String title, List<String> options, boolean[] checked, Consumer<boolean[]> done) {
         dialog = new AlertDialog.Builder(activity)
-                .setTitle(title)
+                .setCustomTitle(titleBar(title))
                 .setMultiChoiceItems(options.toArray(new String[0]), checked, (di, which, isChecked) -> checked[which] = isChecked)
                 .setPositiveButton(R.string.next, (di, w) -> done.accept(checked))
                 .setNegativeButton(R.string.cancel, null)
                 .create();
         track(title, options);
         dialog.show();
+        page();
     }
 
     /** A QR code with its link and a message, then a list of choices below (Back closes it). */
@@ -111,7 +165,7 @@ final class Prompts {
         lp.setMarginStart(pad);
         box.addView(text, lp);
         dialog = new AlertDialog.Builder(activity)
-                .setTitle(title)
+                .setCustomTitle(titleBar(title))
                 .setView(box)
                 .setPositiveButton(R.string.ok, null)
                 .setNeutralButton(options.get(0), (di, w) -> done.accept(0))
@@ -119,6 +173,7 @@ final class Prompts {
                 .create();
         track(title, options);
         dialog.show();
+        page();
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).requestFocus();
     }
 
@@ -136,9 +191,10 @@ final class Prompts {
 
     /** A message with one button. */
     void tell(String title, String message) {
-        dialog = new AlertDialog.Builder(activity).setTitle(title).setMessage(message).setPositiveButton(R.string.ok, null).create();
+        dialog = new AlertDialog.Builder(activity).setCustomTitle(titleBar(title)).setMessage(message).setPositiveButton(R.string.ok, null).create();
         track(title, new ArrayList<>());
         dialog.show();
+        page();
     }
 
     private void track(String t, List<String> options) {

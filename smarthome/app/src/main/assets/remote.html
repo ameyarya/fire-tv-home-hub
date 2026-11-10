@@ -70,8 +70,16 @@
   /* sheets: the TV remote and Activity slide up over the page */
   .sheet { position: fixed; inset: 0; background: rgb(0 0 0 / .5); display: none; z-index: 10; }
   .sheet.open { display: block; }
-  .panel { position: absolute; left: 0; right: 0; bottom: 0; max-width: 560px; margin: 0 auto; height: 75vh; height: 75dvh; max-height: 75vh; background: rgb(30 30 36 / .8);
-           -webkit-backdrop-filter: blur(28px) saturate(170%); backdrop-filter: blur(28px) saturate(170%); border-top: 1px solid rgb(255 255 255 / .14);
+  /* Every pop-up is a full page with a Back button on top (the same for Add, Activity, Settings, the editors, the remote...). */
+  .panel { position: absolute; inset: 0; max-width: none; margin: 0; background: rgb(14 14 18 / .94); border-radius: 0;
+           -webkit-backdrop-filter: blur(28px) saturate(170%); backdrop-filter: blur(28px) saturate(170%);
+           padding: 0 16px max(22px, env(safe-area-inset-bottom)); overflow: auto; }
+  .sheet.open .panel { animation: page-in .22s cubic-bezier(.22, 1, .36, 1); }
+  @keyframes page-in { from { transform: translateX(28px); opacity: 0; } }
+  .panel > .grab, .panel .grab { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; width: auto; height: calc(54px + env(safe-area-inset-top));
+           padding: env(safe-area-inset-top) 4px 0; margin: 0 -16px 8px; background: rgb(14 14 18 / .94); border-radius: 0; cursor: pointer; touch-action: manipulation; }
+  .grab::before { content: "\2039"; font-size: 34px; line-height: 1; font-weight: 300; margin: -4px 8px 0 12px; }
+  .grab::after { content: "Back"; font-size: 17px; font-weight: 500; }
            border-radius: 22px 22px 0 0; padding: 10px 16px max(22px, env(safe-area-inset-bottom)); max-height: 92vh; overflow: auto; }
 
   #motionBanner { all: unset; display: none; position: fixed; top: calc(env(safe-area-inset-top) + 10px); left: 50%; transform: translateX(-50%);
@@ -86,7 +94,6 @@
     text-align: center; border-radius: 50%; background: rgb(0 0 0 / .65); color: #fff; font-size: 16px; }
   .clips .save { right: 38px; font-size: 15px; }
   .clips img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 10px; background: #222; margin-bottom: 4px; }
-  .grab { padding: 12px 0; background-clip: content-box; height: 29px; box-sizing: border-box; cursor: grab; touch-action: none; }
   .seg.mode { display: flex; margin-bottom: 10px; } .seg.mode button { flex: 1; }
   #scr { display: none; position: relative; }
   #scrImg { display: block; width: 100%; aspect-ratio: 16 / 9; border-radius: 14px; background: #000; touch-action: none;
@@ -94,7 +101,6 @@
   #scrTap { position: absolute; width: 28px; height: 28px; margin: -14px 0 0 -14px; border-radius: 50%; background: rgba(255,255,255,.55); opacity: 0; transition: opacity .4s; pointer-events: none; }
   #scrStatus { position: absolute; left: 10px; top: 8px; font-size: 12px; color: #8e8e93; pointer-events: none; }
   .remote-screen #pad { display: none; } .remote-screen #scr { display: block; }
-  .grab { width: 40px; height: 5px; border-radius: 3px; background: #48484a; margin: 0 auto 10px; }
   .panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
   .panel-head b { font-size: 18px; }
   .panel-head .status { font-size: 13px; color: var(--dim); display: flex; align-items: center; gap: 6px; }
@@ -148,7 +154,8 @@
   .mv { position: absolute; top: 8px; width: 34px; height: 34px; border-radius: 50%; background: #3a3a3c; display: none;
         place-items: center; color: #fff; }
   .mv svg { width: 18px; height: 18px; }
-  .mv.w { right: 90px; font-size: 13px; font-weight: 600; }
+  .mv.w { right: 90px; } .tile:not(:has(.mv.l)) .mv.w { right: 10px; }
+  .mv.w {  font-size: 13px; font-weight: 600; }
   .tile.wide { grid-column: span 2; }
   .mv.l { right: 50px; } .mv.r { right: 10px; } .mv.r svg { transform: rotate(180deg); }
   body.editing .mv { display: grid; }
@@ -338,8 +345,9 @@ function summary(h) {
 function tile(cls, icon, badge, name, sub, data, kind, id) {
   const isWide = kind && (home.wide || []).includes(kind + ':' + id);
   if (isWide) cls += ' wide';
-  const mv = kind ? `<span class="mv w" data-wide="${kind}" data-id="${esc(id)}" data-on="${isWide ? 0 : 1}">${isWide ? '1\u00d7' : '2\u00d7'}</span><span class="mv l" data-move="${kind}" data-id="${esc(id)}" data-by="-1"><svg><use href="#i-back"/></svg></span>
+  const arrows = kind && kind !== 'remote' ? `<span class="mv l" data-move="${kind}" data-id="${esc(id)}" data-by="-1"><svg><use href="#i-back"/></svg></span>
     <span class="mv r" data-move="${kind}" data-id="${esc(id)}" data-by="1"><svg><use href="#i-back"/></svg></span>` : '';
+  const mv = kind ? `<span class="mv w" data-wide="${kind}" data-id="${esc(id)}" data-on="${isWide ? 0 : 1}">${isWide ? '1\u00d7' : '2\u00d7'}</span>` + arrows : '';
   return `<div class="tile ${cls}" role="button" ${data}><span class="top"><svg><use href="#${icon}"/></svg><span class="badge">${esc(badge)}</span></span>
     <span><div class="name">${esc(name)}</div><div class="sub">${esc(sub)}</div></span>${mv}</div>`;
 }
@@ -369,7 +377,7 @@ function render() {
   const autos = h.automations.map(a => tile('auto ' + (a.enabled ? 'on' : 'off'), 'i-clock', a.enabled ? 'ON' : 'OFF', a.name,
     a.describe + (a.enabled && a.next ? ' · next ' + a.next : ''), `data-auto="${esc(a.id)}"`, 'automation', a.id));
   // in the shared order (Settings → Section order on the TV, or ▲▼ here in edit mode)
-  const remotes = [tile('', 'i-tv', '', 'TV', 'Tap for the remote', 'data-remote="tv"')];
+  const remotes = [tile('', 'i-tv', '', 'TV', 'Tap for the remote', 'data-remote="tv"', 'remote', 'tv')];
   const parts = { remotes: () => section('Remotes', remotes, filter === 'all', 'remotes'),
     scenes: () => section('Scenes', scenes, show('scenes'), 'scenes'),
     cameras: () => section('Cameras', cams, show('cameras'), 'cameras'),
@@ -855,17 +863,10 @@ $('#openLog').onclick = () => {
     }).join('') || '<p class="empty">Nothing yet.</p>';
   }).catch(() => {});
 };
-// Every pop-up is three quarters of the screen: tap the dim strip above it, or drag the handle down, to close it.
-document.addEventListener('pointerdown', e => {
+// Every pop-up is a full page: its Back button (the bar at the top) closes it.
+document.addEventListener('click', e => {
   const g = e.target.closest('.grab'); if (!g) return;
-  const s = g.closest('.sheet'), p = g.closest('.panel'), y0 = e.clientY; let dy = 0;
-  const move = ev => { dy = Math.max(0, ev.clientY - y0); p.style.transition = 'none'; p.style.transform = `translateY(${dy}px)`; };
-  const up = () => {
-    document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', up); document.removeEventListener('pointercancel', up);
-    p.style.transition = 'transform .2s'; p.style.transform = '';
-    if (dy > 70) sheet('#' + s.id, false);
-  };
-  document.addEventListener('pointermove', move); document.addEventListener('pointerup', up); document.addEventListener('pointercancel', up);
+  const s = g.closest('.sheet'); if (s) sheet('#' + s.id, false);
 });
 document.querySelectorAll('.sheet').forEach(s => s.addEventListener('click', e => { if (e.target === s) sheet('#' + s.id, false); }));
 
