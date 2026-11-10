@@ -40,7 +40,7 @@ final class Prompts {
         android.widget.LinearLayout row = new android.widget.LinearLayout(activity);
         row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
         row.setGravity(android.view.Gravity.CENTER_VERTICAL);
-        row.setPadding((int) (48 * d), (int) (32 * d), (int) (48 * d), (int) (12 * d));
+        row.setPadding((int) (24 * d), (int) (20 * d), (int) (24 * d), (int) (8 * d));
         android.widget.TextView back = new android.widget.TextView(activity);
         back.setText("\u2039  Back");
         back.setTextSize(15);
@@ -67,20 +67,39 @@ final class Prompts {
         return row;
     }
 
-    /** Makes the shown dialog fill the screen over a dark glass page. */
+    /**
+     * Sizes the shown dialog to its content, never more: a glass panel in the middle, most of the screen wide. A list
+     * is as tall as its rows (a long one is capped at 90% of the screen and scrolls). The system's own dialog box
+     * would stretch to the full height around a list, so the height is worked out here.
+     */
     private void page() {
         android.view.Window w = dialog.getWindow();
         if (w == null) return;
-        w.setLayout(-1, -1);
-        w.setGravity(android.view.Gravity.TOP);
-        View panel = dialog.findViewById(activity.getResources().getIdentifier("parentPanel", "id", "android"));
-        if (panel != null && panel.getLayoutParams() != null) {   // the dialog's own box fills the page too
-            panel.getLayoutParams().width = -1;
-            panel.getLayoutParams().height = -1;
-            panel.requestLayout();
+        android.util.DisplayMetrics m = activity.getResources().getDisplayMetrics();
+        float d = m.density;
+        int width = (int) (m.widthPixels * 0.7f), height = android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
+        View icon = dialog.findViewById(android.R.id.icon);
+        if (icon != null) icon.setVisibility(View.GONE);
+        ListView lv = dialog.getListView();
+        if (lv != null && lv.getAdapter() != null && lv.getCount() > 0) {
+            int rows = 0;
+            for (int i = 0; i < lv.getCount(); i++) {
+                View row = lv.getAdapter().getView(i, null, lv);
+                row.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                        View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+                rows += row.getMeasuredHeight();
+            }
+            rows += Math.max(0, lv.getCount() - 1) * Math.max(1, lv.getDividerHeight());
+            boolean buttons = dialog.getButton(AlertDialog.BUTTON_POSITIVE) != null
+                    && dialog.getButton(AlertDialog.BUTTON_POSITIVE).getVisibility() == View.VISIBLE
+                    || dialog.getButton(AlertDialog.BUTTON_NEGATIVE) != null
+                    && dialog.getButton(AlertDialog.BUTTON_NEGATIVE).getVisibility() == View.VISIBLE;
+            int chrome = (int) ((20 + 42 + 8 + 16) * d) + (buttons ? (int) (64 * d) : 0);
+            height = Math.min((int) (m.heightPixels * 0.9f), rows + chrome);
         }
-        w.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(0xF2101014));
-        android.widget.ListView lv = dialog.getListView();
+        w.setLayout(width, height);
+        w.setGravity(android.view.Gravity.CENTER);
+        w.setBackgroundDrawable(activity.getResources().getDrawable(R.drawable.glass_panel, activity.getTheme()));
         if (lv != null && lv.getCount() > 0) lv.requestFocus();   // the first choice, not the Back button
     }
 

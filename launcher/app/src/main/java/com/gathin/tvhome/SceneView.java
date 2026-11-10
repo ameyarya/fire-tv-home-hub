@@ -116,12 +116,12 @@ public final class SceneView extends View {
 
     /** The scene for this moment: from the clock, so the wallpaper and the screensaver always show the same one. */
     private static int timeIndex() {
-        return (int) ((System.currentTimeMillis() / EVERY_MS) % LOOKS.length);
+        return SceneClock.index(System.currentTimeMillis(), EVERY_MS, LOOKS.length);
     }
 
     /** Milliseconds to the next change of scene. */
     private static long untilNext() {
-        return EVERY_MS - System.currentTimeMillis() % EVERY_MS;
+        return SceneClock.untilNext(System.currentTimeMillis(), EVERY_MS);
     }
 
     private final Runnable rotate = this::startNext;

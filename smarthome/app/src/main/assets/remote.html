@@ -70,14 +70,17 @@
   /* sheets: the TV remote and Activity slide up over the page */
   .sheet { position: fixed; inset: 0; background: rgb(0 0 0 / .5); display: none; z-index: 10; }
   .sheet.open { display: block; }
-  /* Every pop-up is a full page with a Back button on top (the same for Add, Activity, Settings, the editors, the remote...). */
-  .panel { position: absolute; inset: 0; max-width: none; margin: 0; background: rgb(14 14 18 / .94); border-radius: 0;
+  /* Every pop-up is as tall as its content (never more), with a Back button on top; a long one scrolls under a cap,
+     and Activity stays at half the screen. The strip above it dims the page and closes it when tapped. */
+  .panel { position: absolute; left: 0; right: 0; bottom: 0; max-width: 560px; margin: 0 auto; height: auto; max-height: 92vh; max-height: 92dvh;
+           background: rgb(24 24 30 / .86); border-radius: 22px 22px 0 0; border-top: 1px solid rgb(255 255 255 / .14);
            -webkit-backdrop-filter: blur(28px) saturate(170%); backdrop-filter: blur(28px) saturate(170%);
            padding: 0 16px max(22px, env(safe-area-inset-bottom)); overflow: auto; }
+  #logSheet .panel { max-height: 50vh; max-height: 50dvh; }
   .sheet.open .panel { animation: page-in .22s cubic-bezier(.22, 1, .36, 1); }
-  @keyframes page-in { from { transform: translateX(28px); opacity: 0; } }
-  .panel > .grab, .panel .grab { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; width: auto; height: calc(54px + env(safe-area-inset-top));
-           padding: env(safe-area-inset-top) 4px 0; margin: 0 -16px 8px; background: rgb(14 14 18 / .94); border-radius: 0; cursor: pointer; touch-action: manipulation; }
+  @keyframes page-in { from { transform: translateY(24px); opacity: 0; } }
+  .panel > .grab, .panel .grab { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; width: auto; height: 54px;
+           padding: 0 4px; margin: 0 -16px 6px; background: rgb(24 24 30 / .9); border-radius: 22px 22px 0 0; cursor: pointer; touch-action: manipulation; }
   .grab::before { content: "\2039"; font-size: 34px; line-height: 1; font-weight: 300; margin: -4px 8px 0 12px; }
   .grab::after { content: "Back"; font-size: 17px; font-weight: 500; }
            border-radius: 22px 22px 0 0; padding: 10px 16px max(22px, env(safe-area-inset-bottom)); max-height: 92vh; overflow: auto; }
@@ -161,7 +164,9 @@
   .mv.h svg { transform: rotate(90deg); }   /* the same arrow, turned: width and height match */
   body.editing .tile .name, body.editing .tile .sub { padding-right: 92px; }
   .tile.wide { grid-column: span 2; }
-  .tile.tall { min-height: 226px; }   /* a row with one in it is tall: the others stretch, as on the TV */
+  /* a tall tile takes the cell below it too (the same placement as the TV: TilePacker); the others keep their height */
+  .grid { grid-auto-rows: minmax(104px, auto); }
+  .tile.tall { grid-row: span 2; }
   .mv.l { right: 50px; } .mv.r { right: 10px; } .mv.r svg { transform: rotate(180deg); }
   body.editing .mv { display: grid; }
   body.editing .tile .badge { visibility: hidden; }   /* the arrows take its corner */

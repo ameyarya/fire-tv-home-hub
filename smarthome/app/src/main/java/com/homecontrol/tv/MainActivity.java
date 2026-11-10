@@ -49,7 +49,7 @@ public class MainActivity extends Activity {
 
     /** One cell of the grid. */
     static final class Tile {
-        static final int HEADER = 0, ITEM = 1;
+        static final int HEADER = 0, ITEM = 1, SPACER = 2;
         final int type;
         /** scene, device, sensor, camera, schedule, tv-input, tv-volume (or header) */
         final String kind;
@@ -60,6 +60,8 @@ public class MainActivity extends Activity {
         String detail = "";
         String state = "";
         int icon;
+        /** A spacer cell (SPACER): how many columns of empty grid it covers. */
+        int spacerSpan = 1;
 
         Tile(int type, String kind, String id, String title) {
             this.type = type;
@@ -141,6 +143,7 @@ public class MainActivity extends Activity {
             public int getSpanSize(int position) {
                 Tile t = tiles.get(position);
                 if (t.type == Tile.HEADER) return COLUMNS;
+                if (t.type == Tile.SPACER) return t.spacerSpan;
                 return home.isWide(t.kind, t.id) ? 2 : 1;   // a double-width tile (the tile's menu: Width)
             }
         });
@@ -212,8 +215,45 @@ public class MainActivity extends Activity {
             item("tv-volume", "", getString(R.string.volume), R.drawable.ic_volume, "tv").state = TvControls.volumeText(this);
         }
         applyStatuses();
+        repack();
         adapter.notifyDataSetChanged();
         afterRebuild();
+    }
+
+    /**
+     * Lays each section out for double-wide and double-height tiles (TilePacker, the same placement as the phone
+     * page): spacer cells go where a tall tile reaches down.
+     */
+    private void repack() {
+        List<Tile> out = new ArrayList<>();
+        int spacers = 0, i = 0;
+        while (i < tiles.size()) {
+            if (tiles.get(i).type != Tile.ITEM) {
+                out.add(tiles.get(i++));
+                continue;
+            }
+            int j = i;
+            while (j < tiles.size() && tiles.get(j).type == Tile.ITEM) j++;
+            List<Tile> section = new ArrayList<>(tiles.subList(i, j));
+            int[] spans = new int[section.size()];
+            boolean[] tall = new boolean[section.size()];
+            for (int k = 0; k < spans.length; k++) {
+                spans[k] = home.isWide(section.get(k).kind, section.get(k).id) ? 2 : 1;
+                tall[k] = home.isTall(section.get(k).kind, section.get(k).id);
+            }
+            for (TilePacker.Cell c : TilePacker.pack(COLUMNS, spans, tall)) {
+                if (c.index >= 0) {
+                    out.add(section.get(c.index));
+                } else {
+                    Tile gap = new Tile(Tile.SPACER, "spacer", String.valueOf(spacers++), "");
+                    gap.spacerSpan = c.span;
+                    out.add(gap);
+                }
+            }
+            i = j;
+        }
+        tiles.clear();
+        tiles.addAll(out);
     }
 
     private void sceneSection(boolean all) {
@@ -662,7 +702,8 @@ public class MainActivity extends Activity {
         @Override
         public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             LayoutInflater inf = LayoutInflater.from(parent.getContext());
-            View v = inf.inflate(viewType == Tile.HEADER ? R.layout.item_header : R.layout.item_tile, parent, false);
+            View v = inf.inflate(viewType == Tile.HEADER ? R.layout.item_header
+                    : viewType == Tile.SPACER ? R.layout.item_spacer : R.layout.item_tile, parent, false);
             RecyclerView.ViewHolder vh = new RecyclerView.ViewHolder(v) { };
             if (viewType == Tile.ITEM) {
                 View card = v.findViewById(R.id.card);
@@ -703,6 +744,7 @@ public class MainActivity extends Activity {
                 ((TextView) vh.itemView).setText(t.title);
                 return;
             }
+            if (t.type == Tile.SPACER) return;
             View v = vh.itemView;
             ((TextView) v.findViewById(R.id.title)).setText(t.title);
             ((TextView) v.findViewById(R.id.detail)).setText(t.detail);
@@ -710,23 +752,15 @@ public class MainActivity extends Activity {
             state.setText(t.state);
             ImageView icon = v.findViewById(R.id.icon);
             icon.setImageResource(t.icon);
-            // A row with a double-height tile in it is double height (the phone page's grid does the same).
+            // A double-height tile reaches down over the empty cell below it (TilePacker): the cell keeps its size.
+            float d = getResources().getDisplayMetrics().density;
             View card = v.findViewById(R.id.card);
-            card.getLayoutParams().height = (int) ((rowIsTall(position) ? 222 : 104) * getResources().getDisplayMetrics().density);
+            v.getLayoutParams().height = (int) (118 * d);
+            card.getLayoutParams().height = (int) ((home.isTall(t.kind, t.id) ? 222 : 104) * d);
             boolean on = getString(R.string.on).equals(t.state) && (t.kind.equals("device"));
             // A plug that is on glows green, as accessories that are on light up in Apple Home.
             icon.setImageTintList(on ? android.content.res.ColorStateList.valueOf(0xFF4CD08A)
                     : getResources().getColorStateList(R.drawable.pill_text, getTheme()));
-        }
-
-        private boolean rowIsTall(int pos) {
-            GridLayoutManager.SpanSizeLookup spans = ((GridLayoutManager) grid.getLayoutManager()).getSpanSizeLookup();
-            int group = spans.getSpanGroupIndex(pos, COLUMNS);
-            for (int i = Math.max(0, pos - COLUMNS); i < Math.min(tiles.size(), pos + COLUMNS + 1); i++) {
-                Tile o = tiles.get(i);
-                if (o.type == Tile.ITEM && spans.getSpanGroupIndex(i, COLUMNS) == group && home.isTall(o.kind, o.id)) return true;
-            }
-            return false;
         }
 
         @Override
