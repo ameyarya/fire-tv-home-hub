@@ -21,7 +21,7 @@ from scipy import ndimage as ndi
 W, H = 1920, 1080
 
 
-def sky_mask(im, seeds, grad_max, hole=4000, grow=2):
+def sky_mask(im, seeds, grad_max, hole=4000, trim=4):
     a = np.asarray(im.filter(ImageFilter.GaussianBlur(2)), float)
     g = np.sqrt((ndi.sobel(a, axis=1) ** 2 + ndi.sobel(a, axis=0) ** 2).sum(2)) / 8
     low = ndi.binary_opening(g < grad_max, iterations=1)
@@ -35,8 +35,14 @@ def sky_mask(im, seeds, grad_max, hole=4000, grow=2):
     for i, s in enumerate(ndi.sum(fg, l2, range(1, n2 + 1)), 1):
         if s < hole:
             m[l2 == i] = True   # a speck of foreground inside the sky is noise
-    m = ndi.binary_erosion(m, iterations=grow)
-    return ndi.gaussian_filter(m.astype(float), 1.2)
+    # a cloud or a wisp inside the sky is not scenery: only foreground that reaches the lower part of the picture stays
+    fg = ~m
+    l2, n2 = ndi.label(fg)
+    low = set(np.unique(l2[int(H * 0.55):, :])) - {0}
+    m = ~np.isin(l2, list(low))
+    # the edge pixels of the foreground still carry the sky's light: grow the sky over them
+    m = ndi.binary_dilation(m, iterations=trim)
+    return ndi.gaussian_filter(m.astype(float), 1.0)
 
 
 def cover(im, anchor):
@@ -52,6 +58,7 @@ def main():
     ap.add_argument("src"); ap.add_argument("name"); ap.add_argument("out")
     ap.add_argument("--seed", action="append", default=[], help="x,y on the sky (at 1920x1080), repeatable")
     ap.add_argument("--grad", type=float, default=8, help="how smooth the sky is; raise for clouds and auroras")
+    ap.add_argument("--shade", help="the scene's Look.shade as AARRGGBB hex: baked into the foreground so it matches the shaded sky behind it")
     ap.add_argument("--anchor", type=float, default=0.5, help="for a picture that is not 16:9: which part to keep, 0 top .. 1 bottom")
     a = ap.parse_args()
     im = cover(Image.open(a.src).convert("RGB"), a.anchor)
@@ -61,7 +68,15 @@ def main():
     im.save(p + ".jpg", quality=88, optimize=True)
     glass = ImageEnhance.Color(ImageEnhance.Brightness(im.filter(ImageFilter.GaussianBlur(40))).enhance(1.12)).enhance(1.35)
     glass.save(p + "_glass.jpg", quality=80, optimize=True)
-    fg = im.convert("RGBA")
+    fgim = im
+    if a.shade:   # SceneView draws this gradient over the picture's top 55% but not over the cut-out, so do it here
+        v = int(a.shade, 16)
+        alpha, rgb = (v >> 24) / 255.0, np.array([(v >> 16) & 255, (v >> 8) & 255, v & 255], float)
+        t = np.clip(1 - np.arange(H) / (H * 0.55), 0, 1)[:, None, None]
+        x = np.asarray(im, float)
+        al = alpha * t
+        fgim = Image.fromarray((x * (1 - al) + rgb * t * al).clip(0, 255).astype("uint8"))
+    fg = fgim.convert("RGBA")
     fg.putalpha(Image.fromarray((np.clip(1 - m, 0, 1) * 255).astype("uint8")))
     fg.save(p + "_fg.webp", quality=88, method=6)
     print(p, "sky share %.0f%%" % (m.mean() * 100))

@@ -97,7 +97,7 @@ public final class SceneView extends View {
                     70, 400, 56, -1, 0.9f, 1.1f, 1.1f, 1f, 0.95f, WHITE_RIM_FILL, WHITE_RIM, WHITE_DATE, 0x6B000010, true),
             // Snowy cabin: the clock in the night sky above the pines
             new Look(R.drawable.scene_cabin, R.drawable.scene_cabin_glass, R.drawable.scene_cabin_fg,
-                    80, 250, 40, -1, 0.95f, 1.1f, 1.1f, 1f, 0.95f, WHITE_RIM_FILL, WHITE_RIM, WHITE_DATE, 0x6B000010, true),
+                    70, 320, 36, -1, 0.95f, 1.1f, 1.1f, 1f, 0.95f, WHITE_RIM_FILL, WHITE_RIM, WHITE_DATE, 0x6B000010, true),
             // Summer thunderstorm: the clock in the dark sky, the sunlit ridge crossing its foot
             new Look(R.drawable.scene_storm, R.drawable.scene_storm_glass, R.drawable.scene_storm_fg,
                     110, 380, 60, -1, 1f, 1f, 1f, 1f, 1f, WHITE_RIM_FILL, WHITE_RIM, WHITE_DATE, 0x6B000000, true),
