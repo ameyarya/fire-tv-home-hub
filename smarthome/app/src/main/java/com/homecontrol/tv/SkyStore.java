@@ -19,10 +19,11 @@ import java.util.concurrent.TimeUnit;
 final class SkyStore {
     private static final long STALE_MS = 3 * 60 * 60 * 1000L;
     private static ScheduledExecutorService timer;
-    /** In Sky's scene order: night, golden hour, misty, dawn, clear day. */
-    static final int COUNT = 5, ALL = 31;
+    /** In Sky's scene order: night, golden hour, misty, dawn, clear day, then the added ones. */
+    static final int COUNT = Sky.COUNT, ALL = Sky.ALL;
     static final int[] PICTURES = {R.drawable.scene_night, R.drawable.scene_golden, R.drawable.scene_fog,
-            R.drawable.scene_dawn, R.drawable.scene_water};
+            R.drawable.scene_dawn, R.drawable.scene_water, R.drawable.scene_autumn, R.drawable.scene_sakura,
+            R.drawable.scene_aurora, R.drawable.scene_cabin, R.drawable.scene_storm};
     private static final byte[][] thumbs = new byte[COUNT][], backdrops = new byte[COUNT][];
 
     private SkyStore() {
@@ -58,10 +59,16 @@ final class SkyStore {
         return true;
     }
 
+    /** A number that changes at local midnight: scenes of one mood take turns by it. */
+    static long day() {
+        Calendar c = Calendar.getInstance();
+        return c.get(Calendar.YEAR) * 366L + c.get(Calendar.DAY_OF_YEAR);
+    }
+
     static int scene(Context c) {
         Home h = Storage.get(c);
         return Sky.allow(Sky.scene(h.latitude, h.longitude, System.currentTimeMillis(), code(c),
-                Calendar.getInstance().get(Calendar.HOUR_OF_DAY)), off(c));
+                Calendar.getInstance().get(Calendar.HOUR_OF_DAY)), off(c), day());
     }
 
     /** A JPEG of a scene for the phone page: small for the gallery, bigger (big) for the page's backdrop. */

@@ -498,7 +498,8 @@ final class HomeApi {
      * Settings for the phone page (the TV's own Settings screens are hidden): location, screensaver, °C/°F, the
      * pairing code, and the page while the TV is off. Cities come grouped by time zone, the TV's own first.
      */
-    private static final String[] WALLPAPERS = {"Night peaks", "Golden hour", "Misty hills", "Rainforest dawn", "Mountain lake"};
+    private static final String[] WALLPAPERS = {"Night peaks", "Golden hour", "Misty hills", "Rainforest dawn", "Mountain lake",
+            "Autumn lake", "Cherry blossoms", "Northern lights", "Snowy cabin", "Summer thunderstorm"};
 
     /** The wallpaper gallery: every scene, whether it is on, and which one is showing now. */
     static JSONObject wallpapers(Context c) throws JSONException {

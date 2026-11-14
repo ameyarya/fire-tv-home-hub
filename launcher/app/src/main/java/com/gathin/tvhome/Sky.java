@@ -10,8 +10,11 @@ import java.util.TimeZone;
  * couch-tv's "follow the sun" (github.com/Seagey/couch-tv, MIT; see CREDITS.md). Plain Java, tested on the JVM.
  */
 final class Sky {
-    /** Scene numbers: the order of the scenes in SceneView. */
-    static final int NIGHT = 0, GOLDEN = 1, FOG = 2, DAWN = 3, WATER = 4;
+    /** Scene numbers: the order of the scenes in SceneView. The first five are also the moods the sun and weather pick. */
+    static final int NIGHT = 0, GOLDEN = 1, FOG = 2, DAWN = 3, WATER = 4, AUTUMN = 5, SAKURA = 6, AURORA = 7, CABIN = 8, THUNDER = 9;
+    static final int COUNT = 10, ALL = (1 << COUNT) - 1;
+    /** The mood each scene belongs to: several scenes can share one, and they take turns by the day. */
+    static final int[] MOOD = {NIGHT, GOLDEN, FOG, DAWN, WATER, WATER, GOLDEN, NIGHT, NIGHT, FOG};
     /** What falls or hangs over the scene. */
     static final int CLEAR = 0, RAIN = 1, SNOW = 2, MIST = 3, STORM = 4;
 
@@ -27,11 +30,27 @@ final class Sky {
             {FOG, GOLDEN, DAWN, NIGHT},      // clear day
     };
 
-    /** The scene to show: this one, unless its bit is set in off (bit n = scene n turned off). */
-    static int allow(int scene, int off) {
-        if ((off >> scene & 1) == 0) return scene;
-        for (int s : INSTEAD[scene]) if ((off >> s & 1) == 0) return s;
-        return scene;   // all off: not allowed by the gallery, but never leave without a scene
+    /** The scenes of a mood that are still on (bit n of off = scene n turned off), in order. */
+    private static int[] on(int mood, int off) {
+        int[] r = new int[COUNT];
+        int n = 0;
+        for (int s = 0; s < COUNT; s++) if (MOOD[s] == mood && (off >> s & 1) == 0) r[n++] = s;
+        return java.util.Arrays.copyOf(r, n);
+    }
+
+    /** The scene to show for a mood: one of its scenes that is on, a different one each day; if none is, the nearest mood's. */
+    static int allow(int mood, int off, long day) {
+        int[] c = on(mood, off);
+        if (c.length > 0) return c[(int) Math.floorMod(day, (long) c.length)];
+        for (int m : INSTEAD[mood]) {
+            c = on(m, off);
+            if (c.length > 0) return c[(int) Math.floorMod(day, (long) c.length)];
+        }
+        return mood;   // all off: not allowed by the gallery, but never leave without a scene
+    }
+
+    static int allow(int mood, int off) {
+        return allow(mood, off, 0);
     }
 
     /** The sun's height above the horizon in degrees, and its hour angle (negative before noon). */

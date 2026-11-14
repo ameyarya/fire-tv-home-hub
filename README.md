@@ -35,7 +35,7 @@ router so the link stays put):
   element under it.)
 - **Remotes** section, **TV**: touchpad, Back / Home / Play / Menu, volume, power and typing on the TV.
 - **Activity**, behind ☰.
-- **Wallpapers** (the picture icon at the top): a gallery of the home screen's five scenes. Tap one to turn it on or off; the TV follows the sun and weather among those that are on, and uses the nearest one when its pick is off (at least one stays on).
+- **Wallpapers** (the picture icon at the top): a gallery of the home screen's ten scenes (night peaks, golden hour, misty hills, rainforest dawn, mountain lake, autumn lake, cherry blossoms, northern lights, snowy cabin, summer thunderstorm; scenes of one mood take turns by the day). `tools/make_scene.py` turns any wallpaper with open sky into a scene. Tap one to turn it on or off; the TV follows the sun and weather among those that are on, and uses the nearest one when its pick is off (at least one stays on).
 - **Energy**, the ⚡ at the top (also on the TV): power now, today, this month and where it is heading, the last 7 days, a chart by hour or by day, each plug's share, the busiest hour and day, what runs all the time, and costs at the electricity price you set. The plugs are read once a minute (while the phone remote is on) and the history stays on the TV (120 days).
 
 Pair a phone once: scan the QR code in Smart Home → Settings → Phone remote, or open `http://<TV address>:8765`

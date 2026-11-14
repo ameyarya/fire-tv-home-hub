@@ -72,14 +72,41 @@ public class SkyTest {
         assertEquals(Sky.CLEAR, Sky.fx(-1));
     }
 
+    private static int off(int... scenes) {
+        int m = 0;
+        for (int s : scenes) m |= 1 << s;
+        return m;
+    }
+
     @Test
-    public void a_scene_turned_off_is_replaced_by_the_nearest_one_that_is_on() {
+    public void a_mood_with_every_scene_off_is_replaced_by_the_nearest_mood_that_is_on() {
         assertEquals(Sky.NIGHT, Sky.allow(Sky.NIGHT, 0));
-        assertEquals(Sky.FOG, Sky.allow(Sky.NIGHT, 1 << Sky.NIGHT));
-        assertEquals(Sky.WATER, Sky.allow(Sky.NIGHT, 1 << Sky.NIGHT | 1 << Sky.FOG));
-        assertEquals(Sky.DAWN, Sky.allow(Sky.GOLDEN, 1 << Sky.GOLDEN));
-        assertEquals(Sky.GOLDEN, Sky.allow(Sky.DAWN, 1 << Sky.DAWN));
-        assertEquals(Sky.NIGHT, Sky.allow(Sky.WATER, 0b01110 | 1 << Sky.WATER));   // only night left
-        assertEquals(Sky.WATER, Sky.allow(Sky.WATER, 0b11111));                      // none on: unchanged
+        assertEquals(Sky.FOG, Sky.allow(Sky.NIGHT, off(Sky.NIGHT, Sky.AURORA, Sky.CABIN)));
+        assertEquals(Sky.WATER, Sky.allow(Sky.NIGHT, off(Sky.NIGHT, Sky.AURORA, Sky.CABIN, Sky.FOG)));
+        assertEquals(Sky.DAWN, Sky.allow(Sky.GOLDEN, off(Sky.GOLDEN, Sky.SAKURA)));
+        assertEquals(Sky.GOLDEN, Sky.allow(Sky.FOG, off(Sky.FOG, Sky.THUNDER, Sky.WATER, Sky.AUTUMN, Sky.DAWN)));
+        assertEquals(Sky.FOG, Sky.allow(Sky.FOG, 0, 0));
+        assertEquals(Sky.THUNDER, Sky.allow(Sky.FOG, 0, 1));
+        assertEquals(Sky.THUNDER, Sky.allow(Sky.FOG, off(Sky.FOG), 0));
+        assertEquals(Sky.NIGHT, Sky.allow(Sky.WATER, Sky.ALL & ~(1 << Sky.NIGHT)));   // only night left
+        assertEquals(Sky.WATER, Sky.allow(Sky.WATER, Sky.ALL));                       // none on: unchanged
+    }
+
+    @Test
+    public void scenes_of_one_mood_take_turns_by_the_day_and_skip_the_ones_that_are_off() {
+        assertEquals(Sky.NIGHT, Sky.allow(Sky.NIGHT, 0, 0));
+        assertEquals(Sky.AURORA, Sky.allow(Sky.NIGHT, 0, 1));
+        assertEquals(Sky.CABIN, Sky.allow(Sky.NIGHT, 0, 2));
+        assertEquals(Sky.NIGHT, Sky.allow(Sky.NIGHT, 0, 3));
+        assertEquals(Sky.CABIN, Sky.allow(Sky.NIGHT, off(Sky.AURORA), 1));
+        assertEquals(Sky.AUTUMN, Sky.allow(Sky.WATER, off(Sky.WATER), 7));
+        assertEquals(Sky.DAWN, Sky.allow(Sky.DAWN, 0, 4));
+    }
+
+    @Test
+    public void every_scene_belongs_to_one_of_the_five_moods() {
+        assertEquals(Sky.COUNT, Sky.MOOD.length);
+        for (int m : Sky.MOOD) assertTrue(m >= 0 && m <= Sky.WATER);
+        for (int s = 0; s <= Sky.WATER; s++) assertEquals(s, Sky.MOOD[s]);
     }
 }

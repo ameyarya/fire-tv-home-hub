@@ -43,9 +43,15 @@ final class SkyStore {
         return System.currentTimeMillis() - p.getLong("at", 0) > STALE_MS ? -1 : p.getInt("code", -1);
     }
 
+    /** A number that changes at local midnight: scenes of one mood take turns by it. */
+    static long day() {
+        Calendar c = Calendar.getInstance();
+        return c.get(Calendar.YEAR) * 366L + c.get(Calendar.DAY_OF_YEAR);
+    }
+
     static int scene(Context c) {
         return Sky.allow(Sky.scene(number(c, "lat"), number(c, "lon"), System.currentTimeMillis(), code(c),
-                Calendar.getInstance().get(Calendar.HOUR_OF_DAY)), prefs(c).getInt("off", 0));
+                Calendar.getInstance().get(Calendar.HOUR_OF_DAY)), prefs(c).getInt("off", 0) & Sky.ALL, day());
     }
 
     static int fx(Context c) {
