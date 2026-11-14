@@ -230,6 +230,15 @@ final class RemoteServer {
                     reply(out, 400, "text/plain", "x,y or x,y,x2,y2");
                 }
             } else reply(out, 400, "text/plain", "x,y or x,y,x2,y2");
+        } else if (method.equals("GET") && action.equals("wallpapers")) {   // the wallpaper gallery
+            reply(out, 200, "application/json", HomeApi.wallpapers(app).toString());
+        } else if (method.equals("GET") && action.equals("wallpaper.jpg")) {
+            byte[] jpeg = SkyStore.thumb(app, parse(param(query, "id")), "1".equals(param(query, "big")));
+            if (jpeg == null) reply(out, 404, "text/plain", "no such wallpaper");
+            else replyBytes(out, 200, "image/jpeg", jpeg);
+        } else if (method.equals("POST") && action.equals("wallpaper")) {
+            boolean ok = SkyStore.setOn(app, parse(param(query, "id")), "1".equals(param(query, "on")));
+            reply(out, ok ? 204 : 400, "text/plain", ok ? "" : "Keep at least one wallpaper on");
         } else if (method.equals("GET") && action.equals("settings")) {
             reply(out, 200, "application/json", HomeApi.settings(app).toString());
         } else if (method.equals("POST") && action.equals("settings")) {

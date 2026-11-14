@@ -640,6 +640,7 @@ final class Editors {
         h.latitude = lat;
         h.longitude = lon;
         save();
+        SkyStore.refresh(a);
     }
 
     private void askCoordinates(Runnable then) {

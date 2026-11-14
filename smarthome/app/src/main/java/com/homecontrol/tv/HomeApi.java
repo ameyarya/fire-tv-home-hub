@@ -65,6 +65,7 @@ final class HomeApi {
             }
         });
         if (o == null) throw new JSONException("no home");
+        o.put("scene", SkyStore.scene(c));   // the page's backdrop follows the TV's wallpaper
         // Ask every device at once; a slow one shows as not answering rather than holding up the page.
         Home copy = onMain(() -> Storage.get(c));
         List<Home.Device> devices = onMain(() -> new ArrayList<>(copy.devices));
@@ -497,6 +498,18 @@ final class HomeApi {
      * Settings for the phone page (the TV's own Settings screens are hidden): location, screensaver, °C/°F, the
      * pairing code, and the page while the TV is off. Cities come grouped by time zone, the TV's own first.
      */
+    private static final String[] WALLPAPERS = {"Night peaks", "Golden hour", "Misty hills", "Rainforest dawn", "Mountain lake"};
+
+    /** The wallpaper gallery: every scene, whether it is on, and which one is showing now. */
+    static JSONObject wallpapers(Context c) throws JSONException {
+        int off = SkyStore.off(c), now = SkyStore.scene(c);
+        JSONArray list = new JSONArray();
+        for (int i = 0; i < WALLPAPERS.length; i++) {
+            list.put(new JSONObject().put("id", i).put("name", WALLPAPERS[i]).put("on", (off >> i & 1) == 0).put("now", i == now));
+        }
+        return new JSONObject().put("wallpapers", list);
+    }
+
     static JSONObject settings(Context c) throws JSONException {
         Home h = onMain(() -> Storage.get(c));
         JSONObject o = new JSONObject();
@@ -542,6 +555,7 @@ final class HomeApi {
                 h.longitude = lon;
                 Storage.save(c);
                 Scheduler.reschedule(c);   // sunrise and sunset move
+                SkyStore.refresh(c);       // and so do the sun and weather behind the wallpaper
                 return null;
             });
         }

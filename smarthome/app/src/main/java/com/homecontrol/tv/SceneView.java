@@ -28,7 +28,7 @@ import java.util.Locale;
 /**
  * The screensaver's scene: the launcher's wallpaper (see its SceneView), muted to a faint tint and dimmed to the
  * room's light (setLevel). A scene photo with a big glass clock sitting behind its scenery, so the peaks and
- * hills overlap the bottom of the digits. Four scenes take turns every minute. The pictures, the clock's
+ * hills overlap the bottom of the digits. Five scenes follow the sun and the weather (see Sky). The pictures, the clock's
  * frosted fill and the layout come from couch-tv (github.com/Seagey/couch-tv, MIT; see CREDITS.md).
  *
  * Layers, back to front: the photo, the clock (filled with a blurred copy of the photo, with a light rim and a
@@ -37,7 +37,7 @@ import java.util.Locale;
  */
 public final class SceneView extends View {
 
-    private static final long EVERY_MS = 30_000, FADE_MS = 1_600;
+    private static final long CHECK_MS = 60_000, FADE_MS = 1_600;
 
     /** One scene: its three pictures and where and how its clock is drawn (pixels at 1920 wide). */
     private static final class Look {
@@ -84,6 +84,9 @@ public final class SceneView extends View {
             // Rainforest dawn: warm light at the top, the clock low enough for the ridges to cross it
             new Look(R.drawable.scene_dawn, R.drawable.scene_dawn_glass, R.drawable.scene_dawn_fg,
                     230, 400, 176, -1, 1f, 1f, 1f, 1f, 1f, WHITE_RIM_FILL, WHITE_RIM, WHITE_DATE, 0x6B321C0C, true),
+            // Daylight, clear: the clock in the sky, its bottom behind the peaks, the lake below
+            new Look(R.drawable.scene_water, R.drawable.scene_water_glass, R.drawable.scene_water_fg,
+                    130, 420, 76, -1, 1f, 1f, 1f, 1f, 1f, WHITE_RIM_FILL, WHITE_RIM, WHITE_DATE, 0x6B000C18, true),
     };
 
     /** A loaded scene: its bitmaps and ready paints. */
@@ -110,7 +113,7 @@ public final class SceneView extends View {
     private final Rect bounds = new Rect();
 
     private Scene current, next;
-    private int index = timeIndex();
+    private int index;
     private float fade = 1f;   // how far `next` has come in over `current`
     private boolean running, loading;
     private String time = "", date = "";
@@ -135,14 +138,14 @@ public final class SceneView extends View {
         invalidate();
     }
 
-    /** The scene for this moment: from the clock, so the wallpaper and the screensaver always show the same one. */
-    private static int timeIndex() {
-        return SceneClock.index(System.currentTimeMillis(), EVERY_MS, LOOKS.length);
+    /** The scene for this moment: from the sun and the weather (see Sky), so the wallpaper and the screensaver show the same one. */
+    private int timeIndex() {
+        return SkyStore.scene(getContext());
     }
 
-    /** Milliseconds to the next change of scene. */
+    /** Milliseconds to the next look at whether the scene should change. */
     private static long untilNext() {
-        return SceneClock.untilNext(System.currentTimeMillis(), EVERY_MS);
+        return CHECK_MS;
     }
 
     private final Runnable rotate = this::startNext;

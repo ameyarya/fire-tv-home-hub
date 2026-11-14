@@ -180,6 +180,7 @@ public class ClockActivity extends Activity {
             main.post(() -> {
                 if (result != null) {
                     forecast = result;
+                    if (result.code >= 0) SkyStore.remember(this, result.code);
                     weatherAt = System.currentTimeMillis();
                     weatherState = "ok";
                 } else if (forecast == null) {

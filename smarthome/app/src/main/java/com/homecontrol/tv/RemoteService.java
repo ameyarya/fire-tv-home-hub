@@ -42,6 +42,7 @@ public class RemoteService extends Service {
         server.start();
         name = new HomeName(this);   // http://home.local:8765
         name.start();
+        SkyStore.start(this);   // the weather for the scene wallpaper, sent to the launcher
         EnergyLog.startSampler(this);   // the energy dashboard goes on recording with the TV off
     }
 

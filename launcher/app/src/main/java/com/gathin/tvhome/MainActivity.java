@@ -92,6 +92,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private View ambient;
     /** The scene wallpaper, or null when it is off. */
     private SceneView scenes;
+    private WeatherFxView weatherFx;
     private TextView heroName;
     private int ambientColor = -1;
     private boolean heroShown;
@@ -213,6 +214,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         else if (cfg.scenes) {   // the glass clock is in the scene, so the small one steps aside
             scenes = findViewById(R.id.scenes);
             scenes.setVisibility(View.VISIBLE);
+            weatherFx = findViewById(R.id.weatherFx);
+            weatherFx.setVisibility(View.VISIBLE);
             findViewById(R.id.leftBlock).setVisibility(View.INVISIBLE);
             findViewById(R.id.ambient).setVisibility(View.GONE);
         }
@@ -418,6 +421,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         super.onResume();
         resumedAt = android.os.SystemClock.uptimeMillis();
         if (scenes != null) scenes.start();
+        if (weatherFx != null) weatherFx.start();
         btnSmartHome.setVisibility(getPackageManager().getLeanbackLaunchIntentForPackage(SMART_HOME) != null ? View.VISIBLE : View.GONE);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(packageReceiver, packageFilter, Context.RECEIVER_NOT_EXPORTED);
@@ -501,6 +505,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         unregisterReceiver(packageReceiver);
         handler.removeCallbacks(minuteTick);
         if (scenes != null) scenes.stop();
+        if (weatherFx != null) weatherFx.stop();
         // Nothing of ours stays on screen over another app; an undecided prompt simply returns next time.
         if (cardPrompt != null) cardPrompt.dismiss();
         if (openPopup != null) openPopup.dismiss();

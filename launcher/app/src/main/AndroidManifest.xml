@@ -103,6 +103,16 @@
                 android:resource="@xml/fire_home_watcher" />
         </service>
 
+        <!-- Where you are and the weather, from Smart Home (signature permission): the scene follows them (Sky). -->
+        <receiver
+            android:name=".SkyReceiver"
+            android:exported="true"
+            android:permission="com.gathin.tvhome.permission.MIRROR">
+            <intent-filter>
+                <action android:name="com.gathin.tvhome.SKY" />
+            </intent-filter>
+        </receiver>
+
         <!-- The screensaver delay, from the Smart Home app's Settings (see FireHomeWatcher). -->
         <receiver
             android:name=".ScreensaverReceiver"

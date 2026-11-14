@@ -22,8 +22,9 @@
   html, body { overflow-x: hidden; }
   html { background: var(--bg); }
   html, body { margin: 0; color: var(--text); font: 16px Outfit, -apple-system, system-ui, sans-serif; }
-  body::before { content: ""; position: fixed; inset: 0; z-index: -1; background: url(/scene.jpg) center / cover;
-                 filter: saturate(.2) brightness(.42); transform: translateZ(0); }
+  /* the TV's wallpaper (--scene, set by backdrop()), dimmed by a plain overlay: a filter on a full-screen fixed layer can stall scrolling */
+  body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+                 background: linear-gradient(rgb(0 0 0 / .5), rgb(0 0 0 / .5)), var(--scene, none) center / cover; }
   .tile, .pill, .filters button, .menu button, .chips button, .seg, .type input, .type button, .form input[type=text], .form input[type=time],
   .form select, .actions button, .toast, .sw { -webkit-backdrop-filter: blur(18px) saturate(160%); backdrop-filter: blur(18px) saturate(160%); }
   .tile, .pill, .filters button, .menu button, .chips button, .type input, .actions button { border: 1px solid rgb(255 255 255 / .14); }
@@ -66,6 +67,17 @@
   .tile.offline { opacity: .45; }
   .tile.auto.off { opacity: .55; }
   .empty { color: var(--dim); font-size: 14px; }
+
+  /* the wallpaper gallery */
+  .walls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
+  .wall { position: relative; padding: 0; border-radius: 16px; overflow: hidden; background: var(--tile); border: 1px solid rgb(255 255 255 / .14); text-align: left; color: var(--text); }
+  .wall img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; transition: opacity .2s, filter .2s; }
+  .wall.off img { opacity: .35; filter: grayscale(1); }
+  .wall .cap { display: flex; justify-content: space-between; align-items: center; gap: 6px; padding: 8px 10px 9px; font-size: 14px; font-weight: 500; }
+  .wall .cap small { font-size: 11px; color: var(--green); font-weight: 600; letter-spacing: .04em; }
+  .wall .tick { position: absolute; top: 8px; right: 8px; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center;
+                background: var(--green); color: #000; font-size: 15px; font-weight: 700; }
+  .wall.off .tick { background: rgb(0 0 0 / .45); border: 1.5px solid rgb(255 255 255 / .6); color: transparent; }
 
   /* sheets: the TV remote and Activity slide up over the page */
   .sheet { position: fixed; inset: 0; background: rgb(0 0 0 / .5); display: none; z-index: 10; }
@@ -244,6 +256,7 @@
   <symbol id="i-power" viewBox="0 0 24 24"><path d="M13 3h-2v10h2V3zm4.8 2.2-1.4 1.4A7 7 0 1 1 7.6 6.6L6.2 5.2A9 9 0 1 0 17.8 5.2z"/></symbol>
   <symbol id="i-gear" viewBox="0 0 24 24"><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.4 7.4 0 0 0-1.7-1L15 3h-4l-.4 2.9a7.4 7.4 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.6 7.6 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.4 7.4 0 0 0 1.7 1L11 21h4l.4-2.9a7.4 7.4 0 0 0 1.7-1l2.5 1 2-3.5-2.2-1.6zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)"/></symbol>
   <symbol id="i-resize" viewBox="0 0 24 24"><path d="M8 7l-5 5 5 5v-3.5h8V17l5-5-5-5v3.5H8z"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><path d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2zM8.5 13.5l2.5 3 3.5-4.5 4.5 6H5l3.5-4.5z"/></symbol>
   <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M11 21h-1l1-7H7.5c-.88 0-.33-.75-.31-.78C8.48 10.94 10.42 7.54 13.01 3h1l-1 7h3.51c.4 0 .62.19.4.66C12.97 17.55 11 21 11 21z"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></symbol>
   <symbol id="i-edit" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.8 9.94l-3.75-3.75L3 17.25zM20.7 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></symbol>
@@ -254,6 +267,7 @@
   <header>
     <h1>Home</h1>
     <div class="pills">
+      <button class="pill icon" id="openWalls" aria-label="Wallpapers"><svg><use href="#i-image"/></svg></button>
       <button class="pill icon" id="openEnergy" aria-label="Energy"><svg><use href="#i-bolt"/></svg></button>
       <button class="pill icon" id="addBtn" aria-label="Add"><svg><use href="#i-plus"/></svg></button>
       <button class="pill icon" id="openLog" aria-label="Activity"><svg><use href="#i-list"/></svg></button>
@@ -327,6 +341,9 @@
     <div id="motionList"></div>
   </div>
 </div>
+<div class="sheet" id="wallSheet">
+  <div class="panel form" id="wallForm"></div>
+</div>
 <div class="sheet" id="setSheet">
   <div class="panel form" id="setForm"></div>
 </div>
@@ -351,7 +368,17 @@ function keep(t) { try { localStorage.setItem('tvToken', t); } catch (e) {} }
 const token = location.pathname.startsWith('/r/') ? location.pathname.split('/')[2] : saved();
 if (location.pathname.startsWith('/r/') && token) { keep(token); history.replaceState(null, '', '/'); }
 const api = '/api/' + token + '/';
+// the page's backdrop is the wallpaper the TV is showing now; the last one is remembered, so a reload starts on it
+let shownScene;
+function backdrop(n) {
+  if (typeof n !== 'number' || n === shownScene) return;
+  shownScene = n;
+  document.documentElement.style.setProperty('--scene', 'url(' + api + 'wallpaper.jpg?id=' + n + '&big=1)');
+  try { localStorage.setItem('shScene', n); } catch (e) {}
+}
+if (token) { try { const n = localStorage.getItem('shScene'); if (n !== null) backdrop(+n); } catch (e) {} }
 if (!token) {
+  document.documentElement.style.setProperty('--scene', 'url(/scene.jpg)');   // not paired yet: the TV can't be asked
   document.body.innerHTML = `<div class="pair"><h1>Smart Home</h1>
     <p>Enter the 4-digit code shown on the TV in Smart Home → Settings → Phone remote.</p>
     <div class="type"><input id="code" inputmode="numeric" maxlength="4" placeholder="Code" autocomplete="one-time-code"><button id="pair">Pair</button></div>
@@ -431,7 +458,7 @@ function render() {
 }
 function load() {
   if (document.hidden) return;
-  fetch(api + 'home').then(r => r.json()).then(h => { home = h; render(); }).catch(() => { $('#summary').textContent = 'The TV isn\u2019t answering'; });
+  fetch(api + 'home').then(r => r.json()).then(h => { home = h; backdrop(h.scene); render(); }).catch(() => { $('#summary').textContent = 'The TV isn\u2019t answering'; });
 }
 $('#filters').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
@@ -661,6 +688,30 @@ function addMenu() {
   sheet('#addSheet', true);
 }
 $('#addBtn').onclick = addMenu;
+
+// ---- the wallpaper gallery: which scenes the TV's home screen and screensaver may use ----
+$('#openWalls').onclick = async () => {
+  const f = $('#wallForm');
+  f.innerHTML = '<div class="grab"></div><div class="panel-head"><b>Wallpapers</b></div><p class="note">Loading…</p>';
+  sheet('#wallSheet', true);
+  await drawWalls();
+};
+async function drawWalls() {
+  const f = $('#wallForm');
+  let w;
+  try { w = (await fetch(api + 'wallpapers').then(r => r.json())).wallpapers; } catch (e) { f.querySelector('.note').textContent = 'The TV isn\u2019t answering'; return; }
+  f.innerHTML = `<div class="grab"></div><div class="panel-head"><b>Wallpapers</b></div>
+    <p class="note">Tap a picture to turn it on or off. The TV follows the sun and the weather among the ones that are on, and uses the nearest one when its pick is off.</p>
+    <div class="walls">${w.map(x => `<button class="wall ${x.on ? '' : 'off'}" data-id="${x.id}" data-on="${x.on ? 1 : 0}" aria-pressed="${x.on}">
+      <img src="${api}wallpaper.jpg?id=${x.id}" alt="" loading="lazy"><span class="tick">\u2713</span>
+      <span class="cap"><span>${esc(x.name)}</span>${x.now ? '<small>NOW</small>' : ''}</span></button>`).join('')}</div>`;
+}
+$('#wallForm').addEventListener('click', async e => {
+  const b = e.target.closest('.wall'); if (!b) return;
+  const r = await post('wallpaper?id=' + b.dataset.id + '&on=' + (b.dataset.on === '1' ? 0 : 1));
+  if (r && !r.ok) toast(await r.text());
+  if (r) drawWalls();
+});
 
 // ---- settings (the TV's own Settings screens are hidden; these are what they held) ----
 $('#openSettings').onclick = async () => {

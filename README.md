@@ -13,6 +13,7 @@ debloat tooling come from **[cleanyourtv](https://github.com/Gathin23/cleanyourt
 | [`launcher/`](launcher) | **Clean home screen** (from cleanyourtv, adapted to Fire OS 8). Your apps on a shelf, no ads. Fire OS won't hand Home to another launcher, so an accessibility service brings this one back whenever Amazon's home appears (rapid Home presses included). Icon-only Wi-Fi / Settings pills (and Inputs, where the TV lets an app switch them; Fire OS doesn't); move tiles anywhere; an All apps drawer; opens the screensaver clock after idle minutes, never while something plays. |
 | [`smarthome/`](smarthome) | **Smart Home** for the TV, in the style of Apple Home: rooms, favourites, scenes, Kasa and Shelly plugs and sensors (found on the Wi-Fi, re-found when they move), RTSP and MJPEG cameras (a doorbell can bring one up: full screen, or a small picture over what's playing), and automations on a time, sunrise/sunset, or the **TV turning on or off**, with days, time windows and "turn off after". It also: |
 | | - serves the **phone web app** at `http://<TV address>:8765` (below) |
+| | - a **live wallpaper**: the home screen and screensaver follow the sun where you are (night, dawn, bright day, golden hour) and the weather (misty when it's overcast or wet, rain, snow, fog or a storm drawn over the home screen); needs a city under Settings → Location and the phone remote on, else it goes by the clock |
 | | - the **screensaver clock**: large clock, date and the weather now and for the next hours (Open-Meteo), dims at night |
 | | - recovers from the **power-cut trap** (clock reset → Private DNS fails → no internet) by itself |
 | [`photos/`](photos) | **Photos** tile: a self-hosted gallery (e.g. [telegram-photo-vault](https://github.com/ameyarya/telegram-photo-vault)) full screen, found on the Wi-Fi, with a remote-driven pointer and ←/→ for previous/next photo. |
@@ -34,6 +35,7 @@ router so the link stays put):
   element under it.)
 - **Remotes** section, **TV**: touchpad, Back / Home / Play / Menu, volume, power and typing on the TV.
 - **Activity**, behind ☰.
+- **Wallpapers** (the picture icon at the top): a gallery of the home screen's five scenes. Tap one to turn it on or off; the TV follows the sun and weather among those that are on, and uses the nearest one when its pick is off (at least one stays on).
 - **Energy**, the ⚡ at the top (also on the TV): power now, today, this month and where it is heading, the last 7 days, a chart by hour or by day, each plug's share, the busiest hour and day, what runs all the time, and costs at the electricity price you set. The plugs are read once a minute (while the phone remote is on) and the history stays on the TV (120 days).
 
 Pair a phone once: scan the QR code in Smart Home → Settings → Phone remote, or open `http://<TV address>:8765`
