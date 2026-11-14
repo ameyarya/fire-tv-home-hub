@@ -85,10 +85,10 @@ public final class SceneView extends View {
                     230, 400, 176, -1, 1f, 1f, 1f, 1f, 1f, WHITE_RIM_FILL, WHITE_RIM, WHITE_DATE, 0x6B321C0C, true),
             // Daylight, clear: the clock in the sky, its bottom behind the peaks, the lake below
             new Look(R.drawable.scene_water, R.drawable.scene_water_glass, R.drawable.scene_water_fg,
-                    130, 420, 76, -1, 1f, 1f, 1f, 1f, 1f, WHITE_RIM_FILL, WHITE_RIM, WHITE_DATE, 0x6B000C18, true),
+                    100, 420, 50, -1, 1f, 1f, 1f, 1f, 1f, WHITE_RIM_FILL, WHITE_RIM, WHITE_DATE, 0x6B000C18, true),
             // Autumn lake: the clock in the big sky, its foot behind the peaks
             new Look(R.drawable.scene_autumn, R.drawable.scene_autumn_glass, R.drawable.scene_autumn_fg,
-                    100, 380, 56, -1, 1f, 1f, 1f, 1f, 1f, WHITE_RIM_FILL, WHITE_RIM, WHITE_DATE, 0x6B000C18, true),
+                    80, 380, 40, -1, 1f, 1f, 1f, 1f, 1f, WHITE_RIM_FILL, WHITE_RIM, WHITE_DATE, 0x6B000C18, true),
             // Cherry blossoms: the clock between the pagoda and the branches
             new Look(R.drawable.scene_sakura, R.drawable.scene_sakura_glass, R.drawable.scene_sakura_fg,
                     110, 330, 56, -1, 1f, 1f, 1f, 1f, 1f, WHITE_RIM_FILL, WHITE_RIM, WHITE_DATE, 0x6B2A1020, true),
@@ -97,7 +97,7 @@ public final class SceneView extends View {
                     70, 400, 56, -1, 0.9f, 1.1f, 1.1f, 1f, 0.95f, WHITE_RIM_FILL, WHITE_RIM, WHITE_DATE, 0x6B000010, true),
             // Snowy cabin: the clock in the night sky above the pines
             new Look(R.drawable.scene_cabin, R.drawable.scene_cabin_glass, R.drawable.scene_cabin_fg,
-                    110, 340, 56, -1, 0.95f, 1.1f, 1.1f, 1f, 0.95f, WHITE_RIM_FILL, WHITE_RIM, WHITE_DATE, 0x6B000010, true),
+                    80, 250, 40, -1, 0.95f, 1.1f, 1.1f, 1f, 0.95f, WHITE_RIM_FILL, WHITE_RIM, WHITE_DATE, 0x6B000010, true),
             // Summer thunderstorm: the clock in the dark sky, the sunlit ridge crossing its foot
             new Look(R.drawable.scene_storm, R.drawable.scene_storm_glass, R.drawable.scene_storm_fg,
                     110, 380, 60, -1, 1f, 1f, 1f, 1f, 1f, WHITE_RIM_FILL, WHITE_RIM, WHITE_DATE, 0x6B000000, true),
