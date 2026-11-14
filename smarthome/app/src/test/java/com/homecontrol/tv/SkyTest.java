@@ -82,7 +82,7 @@ public class SkyTest {
     public void a_mood_with_every_scene_off_is_replaced_by_the_nearest_mood_that_is_on() {
         assertEquals(Sky.NIGHT, Sky.allow(Sky.NIGHT, 0));
         assertEquals(Sky.FOG, Sky.allow(Sky.NIGHT, off(Sky.NIGHT, Sky.AURORA, Sky.CABIN)));
-        assertEquals(Sky.WATER, Sky.allow(Sky.NIGHT, off(Sky.NIGHT, Sky.AURORA, Sky.CABIN, Sky.FOG)));
+        assertEquals(Sky.WATER, Sky.allow(Sky.NIGHT, off(Sky.NIGHT, Sky.AURORA, Sky.CABIN, Sky.FOG, Sky.THUNDER)));
         assertEquals(Sky.DAWN, Sky.allow(Sky.GOLDEN, off(Sky.GOLDEN, Sky.SAKURA)));
         assertEquals(Sky.GOLDEN, Sky.allow(Sky.FOG, off(Sky.FOG, Sky.THUNDER, Sky.WATER, Sky.AUTUMN, Sky.DAWN)));
         assertEquals(Sky.FOG, Sky.allow(Sky.FOG, 0, 0));

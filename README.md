@@ -6,6 +6,59 @@ a photo viewer and a pocket voice remote.** No cloud: everything runs on the TV 
 Built on and tested with a **Hisense Fire TV (AFTCIBFBD1, Fire OS 8 / Android 11)**. The clean launcher and the
 debloat tooling come from **[cleanyourtv](https://github.com/Gathin23/cleanyourtv)**; see [CREDITS.md](CREDITS.md).
 
+## Quick start (about 10 minutes)
+
+You need a Mac or Linux computer on the same Wi-Fi as the TV, and [`adb`](https://developer.android.com/tools/releases/platform-tools)
+(`brew install android-platform-tools` on a Mac).
+
+1. **On the TV:** Settings → My Fire TV → Developer options → **ADB debugging** on. Note the TV's address
+   (Settings → My Fire TV → About → Network).
+2. **On the computer:** get this repo and tell it which TV (once):
+   ```bash
+   git clone https://github.com/ameyarya/fire-tv-home-hub && cd fire-tv-home-hub
+   echo 'TV_HOST=192.168.1.50' > tv.conf      # your TV's address; tv.conf is git-ignored
+   ```
+3. **Install** (the first time, the TV asks to allow debugging from your computer: tick *Always allow*):
+   ```bash
+   ./install-firetv.sh --download              # the clean home screen (undo: ./uninstall-firetv.sh)
+   ./install-smarthome.sh --download           # Smart Home, the phone web app, the screensaver and wallpapers
+   ./apply.sh lists/1-ads-telemetry.txt        # optional: switch off Amazon's ads and telemetry (undo: ./restore.sh <list>)
+   ./install-photos.sh --download              # optional: the Photos tile
+   ```
+4. **Open Smart Home on the TV → Settings → Phone remote** and scan the QR code with your phone. That's the phone app:
+   `http://home.local:8765` (or `http://<TV address>:8765`).
+5. **Settings → Location:** pick your city. The wallpaper then follows the sun and the weather where you live.
+
+Tips: give the TV a fixed address in your router so the link never changes. `--download` fetches ready-made APKs
+from the [latest release](https://github.com/ameyarya/fire-tv-home-hub/releases/latest); it needs no Java or Android SDK,
+but a release can be a little behind this page. To get everything in the repo, leave `--download` out and the scripts
+build from source (JDK 17 and the Android SDK, build-tools 34 / platform 34). Release APKs are signed with the
+maintainer's key: if you built and installed one yourself before, uninstall it first (Android won't update across keys).
+
+Add plugs and cameras from the phone app's **+**, or from the computer: `./home.sh find` (and `./home.sh --help`).
+
+## Wallpapers
+
+The home screen and the screensaver show the same scene, picked by the sun and the weather where you are: night,
+dawn, golden hour, bright day, or misty when it's overcast or wet (with rain, snow, fog or storms drawn over it).
+Ten scenes come with it. Scenes that suit the same moment take turns every 30 seconds. In the phone app, the picture icon at the top opens the
+**Wallpapers** gallery: tap a scene to turn it on or off (at least one stays on).
+
+**Add your own:** any wide photo with open sky works; the clock digits sit *behind* the scenery, so the picture needs
+sky to put them in (a close-up forest does not).
+
+```bash
+pip install pillow numpy scipy
+python3 tools/make_scene.py my-photo.jpg lagoon launcher/app/src/main/res/drawable-nodpi --seed 900,40 --grad 16
+```
+
+`--seed x,y` points at the sky (in a 1920×1080 picture; repeat it for sky split by trees or mountains) and `--grad`
+is how smooth the sky is (raise it for clouds or northern lights). Copy the three files it makes
+(`scene_lagoon.jpg`, `_glass.jpg`, `_fg.webp`) into `smarthome/app/src/main/res/drawable` too, then add one `Look` line to
+`SceneView.java` in both apps, one entry to `Sky.java` (the scene's mood), and to `SkyStore.java` and `HomeApi.java` (its
+picture and name in the gallery). Rebuild and install. The fit of the clock (`top`, `size`) is easiest to tune
+while looking at the TV; aim to keep less than half of the digits hidden behind the scenery.
+
 ## What's in it
 
 | Folder | What it is |
@@ -13,7 +66,7 @@ debloat tooling come from **[cleanyourtv](https://github.com/Gathin23/cleanyourt
 | [`launcher/`](launcher) | **Clean home screen** (from cleanyourtv, adapted to Fire OS 8). Your apps on a shelf, no ads. Fire OS won't hand Home to another launcher, so an accessibility service brings this one back whenever Amazon's home appears (rapid Home presses included). Icon-only Wi-Fi / Settings pills (and Inputs, where the TV lets an app switch them; Fire OS doesn't); move tiles anywhere; an All apps drawer; opens the screensaver clock after idle minutes, never while something plays. |
 | [`smarthome/`](smarthome) | **Smart Home** for the TV, in the style of Apple Home: rooms, favourites, scenes, Kasa and Shelly plugs and sensors (found on the Wi-Fi, re-found when they move), RTSP and MJPEG cameras (a doorbell can bring one up: full screen, or a small picture over what's playing), and automations on a time, sunrise/sunset, or the **TV turning on or off**, with days, time windows and "turn off after". It also: |
 | | - serves the **phone web app** at `http://<TV address>:8765` (below) |
-| | - a **live wallpaper**: the home screen and screensaver follow the sun where you are (night, dawn, bright day, golden hour) and the weather (misty when it's overcast or wet, rain, snow, fog or a storm drawn over the home screen); needs a city under Settings → Location and the phone remote on, else it goes by the clock |
+| | - a **live wallpaper** that follows the sun and the weather (see [Wallpapers](#wallpapers)); needs a city under Settings → Location and the phone remote on, else it goes by the clock |
 | | - the **screensaver clock**: large clock, date and the weather now and for the next hours (Open-Meteo), dims at night |
 | | - recovers from the **power-cut trap** (clock reset → Private DNS fails → no internet) by itself |
 | [`photos/`](photos) | **Photos** tile: a self-hosted gallery (e.g. [telegram-photo-vault](https://github.com/ameyarya/telegram-photo-vault)) full screen, found on the Wi-Fi, with a remote-driven pointer and ←/→ for previous/next photo. |
@@ -35,7 +88,7 @@ router so the link stays put):
   element under it.)
 - **Remotes** section, **TV**: touchpad, Back / Home / Play / Menu, volume, power and typing on the TV.
 - **Activity**, behind ☰.
-- **Wallpapers** (the picture icon at the top): a gallery of the home screen's ten scenes (night peaks, golden hour, misty hills, rainforest dawn, mountain lake, autumn lake, cherry blossoms, northern lights, snowy cabin, summer thunderstorm; scenes of one mood take turns every 30 seconds). `tools/make_scene.py` turns any wallpaper with open sky into a scene. Tap one to turn it on or off; the TV follows the sun and weather among those that are on, and uses the nearest one when its pick is off (at least one stays on).
+- **Wallpapers** (the picture icon at the top): the gallery; see [Wallpapers](#wallpapers).
 - **Energy**, the ⚡ at the top (also on the TV): power now, today, this month and where it is heading, the last 7 days, a chart by hour or by day, each plug's share, the busiest hour and day, what runs all the time, and costs at the electricity price you set. The plugs are read once a minute (while the phone remote is on) and the history stays on the TV (120 days).
 
 Pair a phone once: scan the QR code in Smart Home → Settings → Phone remote, or open `http://<TV address>:8765`
@@ -50,31 +103,7 @@ see it), or presses the keys of an app's own on-screen keyboard (Prime Video); i
 over its keyboard (letters, space, - and '; about a second a letter). Enter submits. Netflix draws a keyboard
 nothing can read, so type there with the arrows. Play/pause and volume go straight to what's playing.
 
-## Setup
-
-1. On the TV: Settings → My Fire TV → Developer options → **ADB debugging** on. Note the TV's address
-   (Settings → My Fire TV → About → Network).
-2. On a Mac (or Linux) with [`adb`](https://developer.android.com/tools/releases/platform-tools), tell the scripts
-   which TV, once:
-   ```bash
-   echo 'TV_HOST=192.168.1.50' > tv.conf      # your TV's address; tv.conf is git-ignored
-   ```
-3. Install, using the **ready-made APKs** from the [latest release](https://github.com/ameyarya/fire-tv-home-hub/releases/latest)
-   (no Java or Android SDK needed):
-   ```bash
-   ./apply.sh lists/1-ads-telemetry.txt        # debloat: disables packages (undo: ./restore.sh <list>)
-   ./install-firetv.sh --download              # the clean launcher (undo: ./uninstall-firetv.sh)
-   ./install-smarthome.sh --download           # Smart Home, the phone web app and the screensaver
-   ./install-photos.sh --download              # optional: Photos
-   ./home.sh find                              # optional: add Kasa plugs and cameras from the Mac (./home.sh --help)
-   ```
-   The first time, the TV asks to allow debugging from your computer: tick *Always allow*. Leave out `--download`
-   to build from source instead (JDK 17 and the Android SDK, build-tools 34 / platform 34).
-
-Then open **Smart Home → Settings → Phone remote** on the TV to pair your phone.
-
-The release APKs are signed with the maintainer's key. If you had built and installed one yourself before, uninstall
-it first (Android won't update an app signed with a different key).
+## Voice remote (optional)
 
 Voice stick: install [ESP-IDF 5.4](https://docs.espressif.com/projects/esp-idf/), then in `stick/` run
 `./setup.sh` (asks for your Wi-Fi password, hidden, and fetches the TV's phone-remote secret over adb into the
@@ -83,7 +112,7 @@ go into the firmware.
 
 ## Tests
 
-`./run-tests.sh --mac-only` runs the unit tests and the `home.sh` tests; no TV needed. `./run-tests.sh` also runs
+`./run-tests.sh --mac-only` runs the unit tests (59 launcher, 219 Smart Home) and the `home.sh` tests; no TV needed. `./run-tests.sh` also runs
 UI tests that drive the TV in `tv.conf` over adb, with fake Kasa and Shelly devices served from your computer, and
 your own Smart Home setup kept aside in a backup slot meanwhile. Tests that need real devices are skipped unless you
 name them: `REAL_PLUG=<Kasa plug address> REAL_CAMERA=<RTSP camera address> ./run-tests.sh`.
