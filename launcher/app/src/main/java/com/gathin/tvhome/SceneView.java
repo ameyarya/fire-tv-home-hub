@@ -36,7 +36,7 @@ import java.util.Locale;
  */
 public final class SceneView extends View {
 
-    private static final long CHECK_MS = 60_000, FADE_MS = 1_600;
+    private static final long FADE_MS = 1_600;
 
     /** One scene: its three pictures and where and how its clock is drawn (pixels at 1920 wide). */
     private static final class Look {
@@ -137,9 +137,9 @@ public final class SceneView extends View {
         return SkyStore.scene(getContext());
     }
 
-    /** Milliseconds to the next look at whether the scene should change. */
+    /** Milliseconds to the next look at whether the scene should change (every turn). */
     private static long untilNext() {
-        return CHECK_MS;
+        return SkyStore.TURN_MS - System.currentTimeMillis() % SkyStore.TURN_MS + 50;   // the next turn of the scenes in a mood
     }
 
     private final Runnable rotate = this::startNext;
@@ -174,7 +174,7 @@ public final class SceneView extends View {
 
     private static SceneView active;
 
-    /** Look at once whether the scene should change (Smart Home just sent a new list or weather). */
+    /** Look at once whether the scene should change (every turn) (Smart Home just sent a new list or weather). */
     static void recheck() {
         SceneView v = active;
         if (v != null) v.main.post(() -> {

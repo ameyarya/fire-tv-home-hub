@@ -93,7 +93,7 @@ public class SkyTest {
     }
 
     @Test
-    public void scenes_of_one_mood_take_turns_by_the_day_and_skip_the_ones_that_are_off() {
+    public void scenes_of_one_mood_take_turns_by_the_turn_and_skip_the_ones_that_are_off() {
         assertEquals(Sky.NIGHT, Sky.allow(Sky.NIGHT, 0, 0));
         assertEquals(Sky.AURORA, Sky.allow(Sky.NIGHT, 0, 1));
         assertEquals(Sky.CABIN, Sky.allow(Sky.NIGHT, 0, 2));

@@ -59,16 +59,18 @@ final class SkyStore {
         return true;
     }
 
-    /** A number that changes at local midnight: scenes of one mood take turns by it. */
-    static long day() {
-        Calendar c = Calendar.getInstance();
-        return c.get(Calendar.YEAR) * 366L + c.get(Calendar.DAY_OF_YEAR);
+    /** How often the scenes of one mood take turns. */
+    static final long TURN_MS = 30_000;
+
+    /** A number that goes up every TURN_MS: the scenes of one mood take turns by it (the same on the home screen and the screensaver). */
+    static long turn() {
+        return System.currentTimeMillis() / TURN_MS;
     }
 
     static int scene(Context c) {
         Home h = Storage.get(c);
         return Sky.allow(Sky.scene(h.latitude, h.longitude, System.currentTimeMillis(), code(c),
-                Calendar.getInstance().get(Calendar.HOUR_OF_DAY)), off(c), day());
+                Calendar.getInstance().get(Calendar.HOUR_OF_DAY)), off(c), turn());
     }
 
     /** A JPEG of a scene for the phone page: small for the gallery, bigger (big) for the page's backdrop. */
