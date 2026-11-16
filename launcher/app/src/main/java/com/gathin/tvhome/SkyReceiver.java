@@ -11,7 +11,7 @@ import android.content.Intent;
 public class SkyReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context c, Intent i) {
-        if (i.hasExtra("off")) SkyStore.saveOff(c, i.getIntExtra("off", 0) & 31);
+        if (i.hasExtra("off")) SkyStore.saveOff(c, i.getIntExtra("off", 0) & Sky.ALL);
         try {
             update(c, i);
         } finally {
