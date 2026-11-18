@@ -526,6 +526,14 @@ public class FireHomeWatcher extends AccessibilityService {
         boolean screenOn = ((PowerManager) getSystemService(POWER_SERVICE)).isInteractive();
         boolean playing = ((AudioManager) getSystemService(AUDIO_SERVICE)).isMusicActive();
         if (CLOCK.getClassName().equals(front)) return;   // already showing
+        long now = SystemClock.uptimeMillis();
+        if (playing || IdleClock.isLiveView(front)) lastKey = now;   // watching counts as use: the full delay starts when it stops
+        long left = minutes() * 60_000L - (now - lastKey);
+        if (left > 0 && screenOn && minutes() > 0) {   // it was playing a moment ago (or the remote was just used)
+            handler.postDelayed(idle, Math.min(left, playing ? IdleClock.RECHECK_MS : left));
+            lastIdle = "WAIT " + left + "ms" + (playing ? " (playing)" : "") + " at " + now;
+            return;
+        }
         IdleClock.Action a = IdleClock.decide(minutes(), screenOn, playing || IdleClock.isLiveView(front));
         lastIdle = a + (playing ? " (playing)" : "") + " at " + SystemClock.uptimeMillis();
         if (a == IdleClock.Action.CHECK_AGAIN) handler.postDelayed(idle, IdleClock.RECHECK_MS);
